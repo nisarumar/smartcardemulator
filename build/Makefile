@@ -42,7 +42,7 @@ MCU = atmega644
 
 # Main Oscillator Frequency
 # This is only used to define F_OSC in all assembler and c-sources.
-F_OSC = 3686400
+F_OSC = 4915200
 
 # Output format. (can be srec, ihex, binary)
 FORMAT = ihex
@@ -52,7 +52,7 @@ TARGET = main
 
 
 # List C source files here. (C dependencies are automatically generated.)
-SRC = ../src/$(TARGET).c
+SRC = $(wildcard ../src/*.c)
 
 
 # List Assembler source files here.
