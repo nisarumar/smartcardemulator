@@ -30,7 +30,7 @@ uint8_t Fifo_fillLevel(struct fifo_t* handl)
 
 uint8_t Fifo_write(struct fifo_t* handl, uint8_t data)
 {
-	uint8_t ret = 0;
+	uint8_t ret = FIFO_OK;
 	if(handl->fl < handl->sz)
 	{
 		handl->buff[handl->wr] = data;
@@ -39,13 +39,13 @@ uint8_t Fifo_write(struct fifo_t* handl, uint8_t data)
 	}
 	else
 	{
-		ret = 1; 	/* FIFO_FULL */
+		ret = FIFO_NOK; 	/* FIFO_FULL */
 	}
 	return ret;
 }
 uint8_t Fifo_read(struct fifo_t* handl, uint8_t * data)
 {
-	uint8_t ret = 0;
+	uint8_t ret = FIFO_OK;
 	if(handl->fl > 0)
 	{
 		*data = handl->buff[handl->rd];
@@ -54,7 +54,7 @@ uint8_t Fifo_read(struct fifo_t* handl, uint8_t * data)
 	}
 	else
 	{
-		ret = 1; 	/* FIFO_EMPTY */
+		ret = FIFO_NOK; 	/* FIFO_EMPTY */
 	}
 	return ret;
 }
