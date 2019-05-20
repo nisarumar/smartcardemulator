@@ -4,10 +4,10 @@
 /* @todo : this should not contain art_config, device configuration \
  * should also be mapped here */
 struct dev_config{
-	uint16_t * timerValue;
-	uint8_t * rxBuff;
-	uint8_t * txBuff;
-	uint8_t * statusReg;
+	volatile uint16_t * timerValue;
+	volatile uint8_t * rxBuff;
+	volatile uint8_t * txBuff;
+	volatile uint8_t * statusReg;
 	struct art_config* artPtr;
 };
 
@@ -25,7 +25,7 @@ void Dev_sendParity(void);
 void Dev_denTxTimer(void);
 void Dev_denRxTimer(void);
 void Dev_enGpioInterrupt(void);
-void Dev_init(struct dev_config devSt);
+void Dev_init(struct dev_config* );
 void Dev_raiseTxComplInt(void);
 void Dev_raiseRxComplInt(void);
 #endif

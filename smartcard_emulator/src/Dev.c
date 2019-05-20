@@ -1,4 +1,5 @@
 /* @todo : make generic (applicable to all file) */
+#include <stdio.h>
 #include <stdint.h>
 #include <avr/interrupt.h>
 #include <util/atomic.h>
@@ -17,11 +18,13 @@ void Dev_timerInit(void)
 	{
 		OCR1A = *(devPtr-> timerValue);
 	}
+	//printf("%o \n",*(devPtr-> timerValue));
 	SET_BIT(TIMSK1, OCIE1A);
 }
 
 void Dev_setGpioIn(void)
 {
+	printf("G \n");
 	CLR_BIT(DDRB, PB6);
 	SET_BIT(PORTB, PB6);
 }
@@ -39,6 +42,8 @@ void Dev_enRxTimer(void)
 
 void Dev_enTxTimer(void)
 {
+
+	printf("tm\n");
 	SET_BIT(TCCR1B, CS10);
 }
 
@@ -116,6 +121,7 @@ void Dev_enGpioInterrupt(void)
 /*@todo : introduce abstraction*/
 ISR(TIMER1_COMPA_vect)
 {
+	printf("i\n");
 	if(ART_HIGH == GET_BIT(*(devPtr->statusReg),ART_STATUS_REG_RX))
 	{
 		Art_rxTimerInterrupt(devPtr-> artPtr);
@@ -131,9 +137,10 @@ ISR(PCINT1_vect)
 	Art_gpioInterrupt(devPtr-> artPtr);
 }
 
-void Dev_init(struct dev_config devSt)
+void Dev_init(struct dev_config * devSt)
 {
-	devPtr = &devSt;
+	devPtr = devSt;
+	Dev_timerInit();
 }
 
 void Dev_raiseTxComplInt(void)

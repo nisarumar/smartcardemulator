@@ -41,6 +41,7 @@ uint8_t Fifo_write(struct fifo_t* handl, uint8_t data)
 	{
 		ret = FIFO_NOK; 	/* FIFO_FULL */
 	}
+	printf("w\n");
 	return ret;
 }
 uint8_t Fifo_read(struct fifo_t* handl, uint8_t * data)
@@ -56,5 +57,6 @@ uint8_t Fifo_read(struct fifo_t* handl, uint8_t * data)
 	{
 		ret = FIFO_NOK; 	/* FIFO_EMPTY */
 	}
+	printf("r\n");
 	return ret;
 }
