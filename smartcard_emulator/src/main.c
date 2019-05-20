@@ -4,6 +4,7 @@
 #include "IO.h"
 #include "IoStream.h"
 #include "Fifo.h"
+#include "AES.h"
 
 int main(void)
 {
@@ -30,6 +31,14 @@ int main(void)
 			printf("fill: %o\n",Fifo_fillLevel(my_fifo));
 		}
 	}
+	
+	 gen_roundkey (&key[0] , &roundkeyarr[0], &aes_sbox[0], &rcon[0]);
+	  _delay_ms(1000);
+	 aes_dec_128(&cipherText[0], &stateText[0], &roundkeyarr[0]);
+	  _delay_ms(1000);
+	  for (uint8_t i=0; i<16; i++){
+			printf("Plain Text is %o\n",stateText[5]);
+			}
 	
 	while(1)
 	{

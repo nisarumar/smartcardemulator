@@ -1,0 +1,192 @@
+   1               		.file	"USART.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	USART_Init
+  12               	USART_Init:
+  13               	.LFB1:
+  14               		.file 1 "../src/USART.c"
+   1:../src/USART.c **** /*
+   2:../src/USART.c ****  * Usart.c
+   3:../src/USART.c ****  *
+   4:../src/USART.c ****  * Copyright 2019 Umar Nisar <umarnisar@outlook.com>
+   5:../src/USART.c ****  *
+   6:../src/USART.c ****  * This program is free software; you can redistribute it and/or modify
+   7:../src/USART.c ****  * it under the terms of the GNU General Public License as published by
+   8:../src/USART.c ****  * the Free Software Foundation; either version 2 of the License, or
+   9:../src/USART.c ****  * (at your option) any later version.
+  10:../src/USART.c ****  *
+  11:../src/USART.c ****  * This program is distributed in the hope that it will be useful,
+  12:../src/USART.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../src/USART.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../src/USART.c ****  * GNU General Public License for more details.
+  15:../src/USART.c ****  *
+  16:../src/USART.c ****  * You should have received a copy of the GNU General Public License
+  17:../src/USART.c ****  * along with this program; if not, write to the Free Software
+  18:../src/USART.c ****  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+  19:../src/USART.c ****  * MA 02110-1301, USA.
+  20:../src/USART.c ****  *
+  21:../src/USART.c ****  *
+  22:../src/USART.c ****  */
+  23:../src/USART.c **** #include <stdint.h>
+  24:../src/USART.c **** #include <stdio.h>
+  25:../src/USART.c **** #include "IO.h"
+  26:../src/USART.c **** #include "USART.h"
+  27:../src/USART.c **** 
+  28:../src/USART.c **** /*
+  29:../src/USART.c ****  *
+  30:../src/USART.c ****  * name: USART_Init
+  31:../src/USART.c ****  * @param void
+  32:../src/USART.c ****  * @return void
+  33:../src/USART.c ****  * @brief: set baudrate and initialized usart for tx
+  34:../src/USART.c ****  */
+  35:../src/USART.c **** 
+  36:../src/USART.c **** void USART_Init(void)
+  37:../src/USART.c **** {
+  15               		.loc 1 37 0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  38:../src/USART.c **** 	/* Set baud rate */
+  39:../src/USART.c **** 	UBRR0L = BAUD_VALUE_L;
+  21               		.loc 1 39 0
+  22 0000 8EE1      		ldi r24,lo8(30)
+  23 0002 8093 C400 		sts 196,r24
+  40:../src/USART.c **** 	UBRR0H = BAUD_VALUE_H; 
+  24               		.loc 1 40 0
+  25 0006 1092 C500 		sts 197,__zero_reg__
+  41:../src/USART.c **** 	/* Enable transmitter */
+  42:../src/USART.c **** 	SET_BIT(UCSR0B,TXEN0);
+  26               		.loc 1 42 0
+  27 000a E1EC      		ldi r30,lo8(-63)
+  28 000c F0E0      		ldi r31,0
+  29 000e 8081      		ld r24,Z
+  30 0010 8860      		ori r24,lo8(8)
+  31 0012 8083      		st Z,r24
+  43:../src/USART.c **** 	/* Set frame format: 8 data bit */
+  44:../src/USART.c **** 	SET_BIT(UCSR0C,UCSZ01);
+  32               		.loc 1 44 0
+  33 0014 E2EC      		ldi r30,lo8(-62)
+  34 0016 F0E0      		ldi r31,0
+  35 0018 8081      		ld r24,Z
+  36 001a 8460      		ori r24,lo8(4)
+  37 001c 8083      		st Z,r24
+  45:../src/USART.c **** 	SET_BIT(UCSR0C,UCSZ00);
+  38               		.loc 1 45 0
+  39 001e 8081      		ld r24,Z
+  40 0020 8260      		ori r24,lo8(2)
+  41 0022 8083      		st Z,r24
+  46:../src/USART.c **** 	/* USART DEBUG */
+  47:../src/USART.c **** 	SET_BIT(DDRA,PINA0);
+  42               		.loc 1 47 0
+  43 0024 089A      		sbi 0x1,0
+  44 0026 0895      		ret
+  45               		.cfi_endproc
+  46               	.LFE1:
+  48               	.global	USART_PutChar
+  50               	USART_PutChar:
+  51               	.LFB2:
+  48:../src/USART.c **** }
+  49:../src/USART.c **** 
+  50:../src/USART.c **** /*
+  51:../src/USART.c ****  *
+  52:../src/USART.c ****  * name: USART_PutChar
+  53:../src/USART.c ****  * @param character, FILE to link stream
+  54:../src/USART.c ****  * @return int16_t	OK = 0, NOK = !0
+  55:../src/USART.c ****  * @brief: tranmits character over USART0
+  56:../src/USART.c ****  */
+  57:../src/USART.c **** 
+  58:../src/USART.c **** int16_t USART_PutChar(char c, FILE* stream)
+  59:../src/USART.c **** {
+  52               		.loc 1 59 0
+  53               		.cfi_startproc
+  54               	.LVL0:
+  55 0028 CF93      		push r28
+  56               	.LCFI0:
+  57               		.cfi_def_cfa_offset 3
+  58               		.cfi_offset 28, -2
+  59               	/* prologue: function */
+  60               	/* frame size = 0 */
+  61               	/* stack size = 1 */
+  62               	.L__stack_usage = 1
+  63 002a C82F      		mov r28,r24
+  64               	.LVL1:
+  60:../src/USART.c **** 	uint8_t count = 0;
+  61:../src/USART.c **** 	int16_t ret	= 0;
+  62:../src/USART.c **** 	if (c == '\n')
+  65               		.loc 1 62 0
+  66 002c 8A30      		cpi r24,lo8(10)
+  67 002e 01F4      		brne .L5
+  63:../src/USART.c **** 	{
+  64:../src/USART.c ****         ret = USART_PutChar('\r', stream);
+  68               		.loc 1 64 0
+  69 0030 8DE0      		ldi r24,lo8(13)
+  70               	.LVL2:
+  71 0032 0E94 0000 		call USART_PutChar
+  72               	.LVL3:
+  73 0036 00C0      		rjmp .L4
+  74               	.LVL4:
+  75               	.L5:
+  61:../src/USART.c **** 	if (c == '\n')
+  76               		.loc 1 61 0
+  77 0038 80E0      		ldi r24,0
+  78 003a 90E0      		ldi r25,0
+  79               	.LVL5:
+  80               	.L4:
+  65:../src/USART.c ****     }
+  66:../src/USART.c **** 	while(0 == GET_BIT(UCSR0A,UDRE0))
+  81               		.loc 1 66 0
+  82 003c 2091 C000 		lds r18,192
+  83 0040 25FF      		sbrs r18,5
+  84 0042 00C0      		rjmp .L4
+  67:../src/USART.c **** 	{
+  68:../src/USART.c **** 		/* wait for buffer to be free */
+  69:../src/USART.c **** /*		count++;*/
+  70:../src/USART.c **** 		if (UINT8_MAX == count)
+  71:../src/USART.c **** 		{
+  72:../src/USART.c **** 			break;
+  73:../src/USART.c **** 		}
+  74:../src/USART.c **** 	}
+  75:../src/USART.c **** 
+  76:../src/USART.c **** 	if (UINT8_MAX == count)
+  77:../src/USART.c **** 	{
+  78:../src/USART.c **** 		TGL_BIT(PORTA,PINA0);
+  79:../src/USART.c **** 		ret |= INT16_C(1);
+  80:../src/USART.c **** 	}
+  81:../src/USART.c **** 	else
+  82:../src/USART.c **** 	{
+  83:../src/USART.c **** 		UDR0 = c;
+  85               		.loc 1 83 0
+  86 0044 C093 C600 		sts 198,r28
+  87               	/* epilogue start */
+  84:../src/USART.c **** 		ret |= INT16_C(0);
+  85:../src/USART.c **** 	}
+  86:../src/USART.c **** 	return ret;
+  87:../src/USART.c **** }
+  88               		.loc 1 87 0
+  89 0048 CF91      		pop r28
+  90               	.LVL6:
+  91 004a 0895      		ret
+  92               		.cfi_endproc
+  93               	.LFE2:
+  95               	.Letext0:
+  96               		.file 2 "/usr/lib/avr/include/stdint.h"
+  97               		.file 3 "/usr/lib/avr/include/stdio.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 USART.c
+     /tmp/ccMaihIG.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccMaihIG.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccMaihIG.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccMaihIG.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccMaihIG.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccMaihIG.s:12     .text:0000000000000000 USART_Init
+     /tmp/ccMaihIG.s:50     .text:0000000000000028 USART_PutChar
+
+NO UNDEFINED SYMBOLS

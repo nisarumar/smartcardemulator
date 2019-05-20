@@ -66,7 +66,7 @@ int16_t USART_PutChar(char c, FILE* stream)
 	while(0 == GET_BIT(UCSR0A,UDRE0))
 	{
 		/* wait for buffer to be free */
-		count++;
+/*		count++;*/
 		if (UINT8_MAX == count)
 		{
 			break;

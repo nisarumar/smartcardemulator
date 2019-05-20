@@ -1,0 +1,108 @@
+   1               		.file	"IoStream.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	IoStream_LinkStream
+  12               	IoStream_LinkStream:
+  13               	.LFB1:
+  14               		.file 1 "../src/IoStream.c"
+   1:../src/IoStream.c **** /*
+   2:../src/IoStream.c ****  * IoStream.c
+   3:../src/IoStream.c ****  *
+   4:../src/IoStream.c ****  * Copyright 2019 Umar Nisar <umarnisar@outlook.com>
+   5:../src/IoStream.c ****  *
+   6:../src/IoStream.c ****  * This program is free software; you can redistribute it and/or modify
+   7:../src/IoStream.c ****  * it under the terms of the GNU General Public License as published by
+   8:../src/IoStream.c ****  * the Free Software Foundation; either version 2 of the License, or
+   9:../src/IoStream.c ****  * (at your option) any later version.
+  10:../src/IoStream.c ****  *
+  11:../src/IoStream.c ****  * This program is distributed in the hope that it will be useful,
+  12:../src/IoStream.c ****  * but WITHOUT ANY WARRANTY; without even the implied warranty of
+  13:../src/IoStream.c ****  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  14:../src/IoStream.c ****  * GNU General Public License for more details.
+  15:../src/IoStream.c ****  *
+  16:../src/IoStream.c ****  * You should have received a copy of the GNU General Public License
+  17:../src/IoStream.c ****  * along with this program; if not, write to the Free Software
+  18:../src/IoStream.c ****  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
+  19:../src/IoStream.c ****  * MA 02110-1301, USA.
+  20:../src/IoStream.c ****  *
+  21:../src/IoStream.c ****  *
+  22:../src/IoStream.c ****  */
+  23:../src/IoStream.c **** 
+  24:../src/IoStream.c **** #include <stdio.h>
+  25:../src/IoStream.c **** #include "USART.h"
+  26:../src/IoStream.c **** 
+  27:../src/IoStream.c **** 
+  28:../src/IoStream.c **** static FILE usartStdOut = FDEV_SETUP_STREAM(USART_PutChar, NULL,
+  29:../src/IoStream.c ****                                              _FDEV_SETUP_WRITE);
+  30:../src/IoStream.c **** 
+  31:../src/IoStream.c **** 
+  32:../src/IoStream.c **** 
+  33:../src/IoStream.c **** /*
+  34:../src/IoStream.c ****  *
+  35:../src/IoStream.c ****  * name: IoStream_LinkStream
+  36:../src/IoStream.c ****  * @param	void
+  37:../src/IoStream.c ****  * @return	void
+  38:../src/IoStream.c ****  * @brief: links std out and err with USART_PutChar
+  39:../src/IoStream.c ****  */
+  40:../src/IoStream.c **** 
+  41:../src/IoStream.c **** void IoStream_LinkStream(void)
+  42:../src/IoStream.c **** {
+  15               		.loc 1 42 0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  43:../src/IoStream.c **** 	USART_Init();
+  21               		.loc 1 43 0
+  22 0000 0E94 0000 		call USART_Init
+  23               	.LVL0:
+  44:../src/IoStream.c **** 	stdout = &usartStdOut;
+  24               		.loc 1 44 0
+  25 0004 E0E0      		ldi r30,lo8(__iob)
+  26 0006 F0E0      		ldi r31,hi8(__iob)
+  27 0008 80E0      		ldi r24,lo8(usartStdOut)
+  28 000a 90E0      		ldi r25,hi8(usartStdOut)
+  29 000c 9383      		std Z+3,r25
+  30 000e 8283      		std Z+2,r24
+  45:../src/IoStream.c **** 	stderr = &usartStdOut;
+  31               		.loc 1 45 0
+  32 0010 9583      		std Z+5,r25
+  33 0012 8483      		std Z+4,r24
+  34 0014 0895      		ret
+  35               		.cfi_endproc
+  36               	.LFE1:
+  38               		.data
+  41               	usartStdOut:
+  42 0000 0000 00   		.zero	3
+  43 0003 02        		.byte	2
+  44 0004 0000 0000 		.zero	4
+  45 0008 0000      		.word	gs(USART_PutChar)
+  46 000a 0000      		.word	0
+  47 000c 0000      		.word	0
+  48               		.text
+  49               	.Letext0:
+  50               		.file 2 "/usr/lib/avr/include/stdio.h"
+  51               		.file 3 "/usr/lib/avr/include/stdint.h"
+  52               		.file 4 "../include/USART.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 IoStream.c
+     /tmp/cc1oIWgB.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/cc1oIWgB.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/cc1oIWgB.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/cc1oIWgB.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/cc1oIWgB.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/cc1oIWgB.s:12     .text:0000000000000000 IoStream_LinkStream
+     /tmp/cc1oIWgB.s:41     .data:0000000000000000 usartStdOut
+
+UNDEFINED SYMBOLS
+USART_Init
+__iob
+USART_PutChar
+__do_copy_data
