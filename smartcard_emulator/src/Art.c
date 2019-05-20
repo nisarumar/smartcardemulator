@@ -21,6 +21,7 @@
  *
  */
 #include <stdint.h>
+#include <stdio.h>
 #include "IO.h"
 #include "IoStream.h"
 #include "Fifo.h"
@@ -138,6 +139,7 @@ void Art_txTimerInterrupt(struct art_config* artPtr)
 		Dev_setPin((artPtr->txBuffer >> artPtr->txBitIdx) & 0x01);
 	}
 	artPtr->txBitIdx++;
+	printf("TxBit: %o\n",artPtr->txBitIdx);
 }
 
 uint8_t Art_txByteStart(struct art_config* artPtr)
@@ -145,8 +147,9 @@ uint8_t Art_txByteStart(struct art_config* artPtr)
 	uint8_t ret = ART_OK;
 	if (ART_STATUS_TX_READY == artPtr->statusReg)
 	{
+		/*printf("Status: %o\n",artPtr->statusReg);*/
 		SET_BIT(artPtr->statusReg,ART_STATUS_REG_TX);
-		artPtr->txBuffer = 0;
+		Fifo_read(artPtr->txFifo, &(artPtr->txBuffer));
 		Dev_setPin(ART_LOW);
 		Dev_enTxTimer();
 	}

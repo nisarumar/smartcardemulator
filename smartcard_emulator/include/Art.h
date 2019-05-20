@@ -10,7 +10,7 @@ struct art_config{
 	volatile uint8_t txBitIdx;
 	struct fifo_t *txFifo;
 	struct fifo_t *rxFifo;
-	struct Dev_config * device;
+	/* todo: add dev_config here */
 };
 
 typedef enum{
