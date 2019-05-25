@@ -61,23 +61,42 @@ const uint8_t aes_invsbox[256] = {
  0xa0, 0xe0, 0x3b, 0x4d, 0xae, 0x2a, 0xf5, 0xb0, 0xc8, 0xeb, 0xbb, 0x3c, 0x83, 0x53, 0x99, 0x61,
  0x17, 0x2b, 0x04, 0x7e, 0xba, 0x77, 0xd6, 0x26, 0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
 };
+const uint8_t roundkeyarr [176]={
+0xb5, 0x2e, 0x33, 0xb1, 0x2a, 0x71, 0x1d, 0xcb, 0xf9, 0xa7, 0x8a, 0xd7, 0x39, 0xd8, 0x82, 0x08,
+0xd5, 0x3d, 0x03, 0xa3, 0xff, 0x4c, 0x1e, 0x68, 0x06, 0xeb, 0x94, 0xbf, 0x3f, 0x33, 0x16, 0xb7, 
+0x14, 0x7a, 0xaa, 0xd6, 0xeb, 0x36, 0xb4, 0xbe, 0xed, 0xdd, 0x20, 0x01, 0xd2, 0xee, 0x36, 0xb6,
+0x38, 0x7f, 0xe4, 0x63, 0xd3, 0x49, 0x50, 0xdd, 0x3e, 0x94, 0x70, 0xdc, 0xec, 0x7a, 0x46, 0x6a, 
+0xea, 0x25, 0xe6, 0xad, 0x39, 0x6c, 0xb6, 0x70, 0x07, 0xf8, 0xc6, 0xac, 0xeb, 0x82, 0x80, 0xc6, 
+0xe9, 0xe8, 0x52, 0x44, 0xd0, 0x84, 0xe4, 0x34, 0xd7, 0x7c, 0x22, 0x98, 0x3c, 0xfe, 0xa2, 0x5e, 
+0x72, 0xd2, 0x0a, 0xaf, 0xa2, 0x56, 0xee, 0x9b, 0x75, 0x2a, 0xcc, 0x03, 0x49, 0xd4, 0x6e, 0x5d, 
+0x7a, 0x4d, 0x46, 0x94, 0xd8, 0x1b, 0xa8, 0x0f, 0xad, 0x31, 0x64, 0x0c, 0xe4, 0xe5, 0x0a, 0x51,
+0x23, 0x2a, 0x97, 0xfd, 0xfb, 0x31, 0x3f, 0xf2, 0x56, 0x00, 0x5b, 0xfe, 0xb2, 0xe5, 0x51, 0xaf,
+0xe1, 0xfb, 0xee, 0xca, 0x1a, 0xca, 0xd1, 0x38, 0x4c, 0xca, 0x8a, 0xc6, 0xfe, 0x2f, 0xdb, 0x69,
+0xc2, 0x42, 0x17, 0x71, 0xd8, 0x88, 0xc6, 0x49, 0x94, 0x42, 0x4c, 0x8f, 0x6a, 0x6d, 0x97, 0xe6
+};
 
 const uint8_t rcon [10] ={0x01, 0x02,  0x04, 0x08,  0x10,  0x20,  0x40,  0x80,  0x1b,  0x36}; 
-uint8_t cipherText [16] ={0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb};
-uint8_t	stateText [16];
-uint8_t roundkeyarr[176];
-uint8_t key[16]={0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f};
+uint8_t	stateText [16] = {0x79,	0x9F, 0xFD,	0x33, 0x7C,	0x8E, 0x7D, 0x9A, 0xCC, 0xD0, 0xCA, 0xC5, 0x19, 0x16, 0x33, 0x4D};
+//uint8_t key[16]={0xB5, 0x2E, 0x33, 0xB1, 0x2A, 0x71, 0x1D, 0xCB, 0xF9, 0xA7, 0x8A, 0xD7, 0x39, 0xD8, 0x82, 0x08 };
 
 
-void add_round_key(uint8_t* stateText, uint8_t* roundKey, uint8_t roundnum){
+void add_round_key(uint8_t* stateText, const uint8_t* roundKey, uint8_t roundnum){
 	 for (uint8_t i =0; i<16; i++){
-		 cipherText[i] ^= roundKey[16*roundnum + i];
-		  }
-	 }
+		 stateText[i] ^= roundKey[16*roundnum + i];
+	}
+	//printf("\nAfter add round %d is \n",roundnum);
+	//for (uint8_t i=0; i<16; i++){
+	//		printf("%x ",stateText[i]);
+	//}
+}
 void inverse_subbytes(uint8_t* stateText,  const uint8_t* invsbox){
 	for(uint8_t i =0; i<16; i++){
 		stateText[i] = invsbox[stateText[i]];
 	}
+	//printf("\nAfter inverse subytes is \n");
+	//for (uint8_t i=0; i<16; i++){
+	//	printf("%x ",stateText[i]);
+	//}
 }
 void inverse_shift_rows(uint8_t* stateText){
 			 uint8_t temp0 = stateText[13];
@@ -99,6 +118,11 @@ void inverse_shift_rows(uint8_t* stateText){
 			stateText[7]=stateText[11];
 			stateText[11]=stateText[15];
 			stateText[15]=temp3;
+			
+		//	printf("\nInverse Shift bytes is \n");
+		//	for (uint8_t i=0; i<16; i++){
+		//	printf("%x ",stateText[i]);
+		//	}
 	 
 }
 uint8_t gf256mul(uint8_t in1, uint8_t in2){
@@ -124,67 +148,80 @@ uint8_t gf256mul(uint8_t in1, uint8_t in2){
 	 s[index+1] =  gf256mul(0x09 , temp0) ^ gf256mul(0x0e,s[index+1])^gf256mul(0x0b, s[index+2])^gf256mul(0x0d , s[index+3]);
 	 s[index+2] =  gf256mul(0x0d , temp0) ^ gf256mul(0x09,temp1)^gf256mul(0x0e, temp2)^gf256mul(0x0b , s[index+3]);
 	 s[index+3] =  gf256mul(0x0b , temp0) ^ gf256mul(0x0d,temp1)^gf256mul(0x09, temp2)^gf256mul(0x0e , s[index+3]);
+	
+//	printf("\nafter inverse mix coloumns is \n");
+//	for (uint8_t i=0; i<16; i++){
+//			printf("%x ",s[i]);
+//			}
+
 	 }
 	 
 }
-
+/*
 void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uint8_t* rcont){
 	
-	memcpy(key,k,16);
+	memcpy(k,key,16);
 	
 	for(uint8_t i=16; i<176; i+=4){
-		memcpy(k[i],k[i-4],4);
-		if (i % 16 == 0 && i!=0){	
+			k[i]=k[i-4];
+			k[i+1]=k[i-4+1];
+			k[i+2]=k[i-4+2];
+			k[i+3]=k[i-4+3];
+		if (i % 16 == 0){	
 			
 			// cyclic shift of first four bytes
-			uint8_t temp = k[i+3];
+			uint8_t temp = k[i];
 			k[i] = k[i+1];
 			k[i+1] = k[i+2];
 			k[i+2] = k[i+3];
 			k[i+3] = temp;
 		
-			// subbytes for i.e. is replacing the each bytes from sbix array
+			//printf(" After Cyclic Shift %d is %x %x %x %x \n",i,k[i],k[i+1],k[i+2],k[i+3]);
+		
+			// subbytes for i.e. is replacing the each bytes from array
 			k[i]   = sboxarr[k[i]];
 			k[i+1] = sboxarr[k[i+1]];
 			k[i+2] = sboxarr[k[i+2]];
 			k[i+3] = sboxarr[k[i+3]];
 			
+			//printf(" After Subytes %d is %x %x %x %x \n",i,k[i],k[i+1],k[i+2],k[i+3]);
+
+			
 			//multiplication with rcon constant array
 			k[i]   ^=rcont[(i/16)-1];
-			k[i+1] ^=0x0 ;
-			k[i+2] ^=0x0 ;
-			k[i+3] ^=0x0 ;
+			//printf(" After rcon %d is %x %x %x %x \n",i,k[i],k[i+1],k[i+2],k[i+3]);
 		}
 			// xor with previous word
 			k[i]   ^= k[i-16];
 			k[i+1] ^= k[i-16 +1];
 			k[i+2] ^=k[i-16 +2];
 			k[i+3] ^=k[i-16 +3];
+			//printf(" After xor %d is %x %x %x %x \n",i,k[i],k[i+1],k[i+2],k[i+3]);
 			
 	}
-}
+	printf("\n");
+	for (uint8_t i=0; i<176; i+=16){
+		printf(" %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x \n",k[i],k[i+1],k[i+2],k[i+3],k[i+4],k[i+5],k[i+6],k[i+7],k[i+8],k[i+9],k[i+10],k[i+11],k[i+12],k[i+13],k[i+14],k[i+15]);
+		}
+}*/
 
-void aes_dec_128(uint8_t* cipherText,  uint8_t* state ,uint8_t* roundkeyarray ){
-	  memcpy(cipherText,state,16);
+void aes_dec_128(uint8_t* state ,const uint8_t* roundkeyarray ){
 	  uint8_t roundCount=10;
 	  //add round key
 	  
-	   add_round_key(&stateText[0],&roundkeyarr[0], 10);
+	   add_round_key(stateText,roundkeyarr, 10);
 	   roundCount--;
 	  // first 9 rounds
 	   for (; roundCount > 0 ; roundCount--){
-			inverse_shift_rows(&stateText[0]);
-			inverse_subbytes(&stateText[0],&aes_invsbox[0]);
-			add_round_key(&stateText[0],&roundkeyarr[0],roundCount);
-			inverse_mix_coloumns(&stateText[0]);
+			inverse_shift_rows(stateText);
+			inverse_subbytes(stateText,aes_invsbox);
+			add_round_key(stateText,roundkeyarr,roundCount);
+			inverse_mix_coloumns(stateText);
 		}
 		
 		//final round
-		inverse_shift_rows(&stateText[0]);
-		inverse_subbytes(&stateText[0],&aes_invsbox[0]);
-		add_round_key(&stateText[0],&roundkeyarr[0],roundCount);
-		
-		
+		inverse_shift_rows(stateText);
+		inverse_subbytes(stateText,aes_invsbox);
+		add_round_key(stateText,roundkeyarr,roundCount);	
 		
 }
-
