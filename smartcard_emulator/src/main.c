@@ -5,15 +5,31 @@
 #include "IoStream.h"
 #include "Fifo.h"
 #include "AES.h"
-
+#include <avr/interrupt.h>
+#include <avr/io.h>
+uint8_t tot_overflow;
+void init_timer1(void);
+void init_timer1(void){
+	TCCR1B |= (1<<WGM12);
+	TCCR1B |= (1<<CS10);
+	TCNT1=0;
+}
+ISR(TIMER0_OVF_vect)
+{
+    // keep a track of number of overflows
+    tot_overflow++;
+}
 int main(void)
 {
+	
+	uint16_t timerValue=0;
 // Configure pin 7 on port A as output
 	DDRA |= (1 << PINA7); // Debug-LED
 // Infinite loop
 	IoStream_LinkStream();
 	uint8_t data = 0;
 	MK_FIFO(my_fifo,5);
+	
 	for( int i = 0; i < 6; i++)
 	{
 		printf("Add: %o\n",Fifo_write(my_fifo,i));
@@ -32,12 +48,28 @@ int main(void)
 		}
 	}
 	
-	 gen_roundkey (&key[0] , &roundkeyarr[0], &aes_sbox[0], &rcon[0]);
-	  _delay_ms(1000);
-	 aes_dec_128(&cipherText[0], &stateText[0], &roundkeyarr[0]);
-	  _delay_ms(1000);
+	printf("CipherText is \n");
+	for (uint8_t i=0; i<16; i++){
+		printf("%x",stateText[i]);
+	}
+	
+        printf("\n");
+	
+     	//generate the key for every round
+     	
+     	init_timer1();
+		gen_roundkey (key , roundkeyarr, aes_sbox, rcon);
+		//decrypt
+		
+		aes_dec_128(stateText, roundkeyarr);
+		timerValue=TCNT1;
+		printf("No. of time timer overfolowed %u \n",tot_overflow);
+		printf("Time take to decrypt is %u \n",timerValue);
+	
+		printf("Plain Text is \n");
+
 	  for (uint8_t i=0; i<16; i++){
-			printf("Plain Text is %o\n",stateText[5]);
+			printf("%x",stateText[i]);
 			}
 	
 	while(1)
