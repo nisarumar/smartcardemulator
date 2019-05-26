@@ -7,7 +7,6 @@
 #include "AES.h"
 #include <avr/interrupt.h>
 #include <avr/io.h>
-
 uint8_t tot_overflow;
 void init_timer1(void);
 void init_timer1(void){
@@ -57,14 +56,12 @@ int main(void)
 	
      	//generate the key for every round
      	
-     	
 		//gen_roundkey (key , roundkeyarr, aes_sbox, rcon);
 		
 		init_timer1();
 		//decrypt
 		aes_dec_128(stateText, roundkeyarr);
 		timerValue=TCNT1;
-		
 		printf("No. of time timer overfolowed %u \n",tot_overflow);
 		printf("Time take to decrypt is %u \n",timerValue);
 	

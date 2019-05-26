@@ -206,6 +206,7 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 }*/
 
 void aes_dec_128(uint8_t* state ,const uint8_t* roundkeyarray ){
+
 	  uint8_t roundCount=10;
 	  //add round key
 	  
