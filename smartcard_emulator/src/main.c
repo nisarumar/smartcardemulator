@@ -7,11 +7,18 @@
 #include "AES.h"
 #include <avr/interrupt.h>
 #include <avr/io.h>
+uint16_t timerValue;
 uint8_t tot_overflow;
 void init_timer1(void);
 void init_timer1(void){
+	TCCR1A =0;
+	TCCR1B =0;
 	TCCR1B |= (1<<CS10);
+	TIMSK1 = (1<<TOIE1);
+	sei();
 	TCNT1=0;
+	timerValue=0;
+
 }
 ISR(TIMER1_OVF_vect)
 {
@@ -21,7 +28,7 @@ ISR(TIMER1_OVF_vect)
 int main(void)
 {
 	
-	uint16_t timerValue=0;
+	
 // Configure pin 7 on port A as output
 	DDRA |= (1 << PINA7); // Debug-LED
 // Infinite loop
@@ -46,12 +53,11 @@ int main(void)
 			printf("fill: %o\n",Fifo_fillLevel(my_fifo));
 		}
 	}
-	
-	printf("CipherText is \n");
-	for (uint8_t i=0; i<16; i++){
-		printf("%x",stateText[i]);
-	}
-	
+	 printf("Cipher Text is \n");
+	 for (uint8_t i=0; i<16; i++){
+			printf("%x",stateText[i]);
+			}
+
         printf("\n");
 	
      	//generate the key for every round
@@ -62,7 +68,7 @@ int main(void)
 		//decrypt
 		aes_dec_128(stateText, roundkeyarr);
 		timerValue=TCNT1;
-		printf("No. of time timer overfolowed %u \n",tot_overflow);
+		printf("No. of time timer overflowed %u \n",tot_overflow);
 		printf("Time take to decrypt is %u \n",timerValue);
 	
 		printf("Plain Text is \n");
@@ -71,11 +77,11 @@ int main(void)
 			printf("%x",stateText[i]);
 			}
 	
-	while(1)
-	{
+	while(1);
+	//{
 	//	printf("Hello\n");
 	// Invert the output of pin 7 on port A
-		PORTA ^= (1 << PINA7);
-		_delay_ms(10);
-	}
+	//	PORTA ^= (1 << PINA7);
+	//	_delay_ms(10);
+	//}
 }
