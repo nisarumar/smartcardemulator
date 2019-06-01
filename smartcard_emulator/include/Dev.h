@@ -15,7 +15,7 @@ void Dev_timerInit(void);
 void Dev_setGpioIn(void);
 void Dev_setGpioOut(void);
 void Dev_enRxTimer(void);
-void Dev_enTxTimer(void);
+inline void Dev_enTxTimer(void);
 void Dev_updateRxTimerValue(uint16_t );
 void Dev_denGpioInterrupt(void);
 void Dev_setPin(uint8_t );

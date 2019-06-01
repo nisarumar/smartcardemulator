@@ -16,15 +16,14 @@ void Dev_timerInit(void)
 	SET_BIT(TCCR1B, WGM12); /* CTC */
 	ATOMIC_BLOCK(ATOMIC_RESTORESTATE)
 	{
+		TCNT1 = 0;
 		OCR1A = *(devPtr-> timerValue);
 	}
-	//printf("%o \n",*(devPtr-> timerValue));
 	SET_BIT(TIMSK1, OCIE1A);
 }
 
 void Dev_setGpioIn(void)
 {
-	printf("G \n");
 	CLR_BIT(DDRB, PB6);
 	SET_BIT(PORTB, PB6);
 }
@@ -37,13 +36,13 @@ void Dev_setGpioOut(void)
 
 void Dev_enRxTimer(void)
 {
+	TCNT1 = 0;
 	SET_BIT(TCCR1B, CS10);
 }
 
 void Dev_enTxTimer(void)
 {
-
-	printf("tm\n");
+	TCNT1 = 0;
 	SET_BIT(TCCR1B, CS10);
 }
 
@@ -118,10 +117,9 @@ void Dev_enGpioInterrupt(void)
 	SET_BIT(PCMSK1,PCINT14);
 }
 
-/*@todo : introduce abstraction*/
+/*@todo : introduce abstraction in macro's instead of if else*/
 ISR(TIMER1_COMPA_vect)
 {
-	printf("i\n");
 	if(ART_HIGH == GET_BIT(*(devPtr->statusReg),ART_STATUS_REG_RX))
 	{
 		Art_rxTimerInterrupt(devPtr-> artPtr);

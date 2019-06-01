@@ -34,11 +34,11 @@ static void Art_txByteDeInit(struct art_config* artPtr)
 {
 	Dev_denTxTimer();
 	CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX);
+	printf("di\n");
 	artPtr->txBitIdx = 0;
-	if (FIFO_OK != Fifo_write(artPtr->txFifo,artPtr->txBuffer))
+	if (FIFO_OK != Fifo_read(artPtr->txFifo,& artPtr->txBuffer))
 	{
-		SET_BIT(artPtr->statusReg, \
-										ART_STATUS_REG_TXFIFO_FULL);
+		SET_BIT(artPtr->statusReg, ART_STATUS_REG_TXFIFO_FULL/* empty */);
 	}
 	Dev_raiseTxComplInt();
 }
@@ -50,8 +50,7 @@ static void Art_rxByteDeInit(struct art_config* artPtr)
 	artPtr->rxBitIdx = 0;
 	if (FIFO_OK != Fifo_write(artPtr->txFifo,artPtr->txBuffer))
 	{
-		SET_BIT(artPtr->statusReg, \
-										ART_STATUS_REG_RXFIFO_FULL);
+		SET_BIT(artPtr->statusReg, ART_STATUS_REG_RXFIFO_FULL);
 	}
 	Dev_raiseRxComplInt();
 }
@@ -117,18 +116,16 @@ void Art_rxTimerInterrupt(struct art_config* artPtr)
 
 void Art_txTimerInterrupt(struct art_config* artPtr)
 {
-	if(artPtr->txBitIdx > ART_BYTE+2)
+	if(ART_BYTE+1 == artPtr->txBitIdx)
 	{
-		Art_txByteDeInit(artPtr);
-	}
-	if(ART_BYTE+2 == artPtr->txBitIdx)
-	{
+		Dev_setPin(ART_HIGH);
 		Dev_setGpioIn();
 		if(ART_LOW == (Dev_getPinAvg() & 0x01))
 		{
 			SET_BIT(artPtr->statusReg, \
 										ART_STATUS_REG_PARITY_ERR);
 		}
+		Dev_setGpioOut();
 	}
 	if(ART_BYTE == artPtr->txBitIdx)
 	{
@@ -136,10 +133,15 @@ void Art_txTimerInterrupt(struct art_config* artPtr)
 	}
 	if(artPtr->txBitIdx < ART_BYTE)
 	{
-		Dev_setPin((artPtr->txBuffer >> artPtr->txBitIdx) & 0x01);
+		Dev_setPin(UINT8_C((artPtr->txBuffer >> artPtr->txBitIdx) & 0x01));
 	}
 	artPtr->txBitIdx++;
-	printf("TxBit: %o\n",artPtr->txBitIdx);
+	if(artPtr->txBitIdx > ART_BYTE+1)
+	{
+		Dev_denTxTimer();
+		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_TX);
+		artPtr->txBitIdx = 0;
+	}
 }
 
 uint8_t Art_txByteStart(struct art_config* artPtr)
@@ -147,9 +149,9 @@ uint8_t Art_txByteStart(struct art_config* artPtr)
 	uint8_t ret = ART_OK;
 	if (ART_STATUS_TX_READY == artPtr->statusReg)
 	{
-		/*printf("Status: %o\n",artPtr->statusReg);*/
 		SET_BIT(artPtr->statusReg,ART_STATUS_REG_TX);
 		Fifo_read(artPtr->txFifo, &(artPtr->txBuffer));
+		artPtr->txBitIdx = 0;
 		Dev_setPin(ART_LOW);
 		Dev_enTxTimer();
 	}
