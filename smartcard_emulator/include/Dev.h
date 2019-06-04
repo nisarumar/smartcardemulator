@@ -8,8 +8,10 @@ struct dev_config{
 	volatile uint8_t * rxBuff;
 	volatile uint8_t * txBuff;
 	volatile uint8_t * statusReg;
+	volatile uint8_t rxByteCount;
 	struct art_config* artPtr;
 };
+
 
 void Dev_timerInit(void);
 void Dev_setGpioIn(void);
@@ -28,4 +30,7 @@ void Dev_enGpioInterrupt(void);
 void Dev_init(struct dev_config* );
 void Dev_raiseTxComplInt(void);
 void Dev_raiseRxComplInt(void);
+void Dev_enAuxTimer(void);
+void Dev_denAuxTimer(void);
+void Dev_updateTxTimerValue(uint16_t);
 #endif

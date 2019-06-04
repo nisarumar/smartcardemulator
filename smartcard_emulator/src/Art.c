@@ -29,6 +29,8 @@
 #include "Dev.h"
 
 /* @todo make dev struct member of artPtr struct*/
+uint8_t logger[255]={0};
+uint8_t logIdx = 0;
 
 static void Art_txByteDeInit(struct art_config* artPtr)
 {
@@ -46,7 +48,7 @@ static void Art_txByteDeInit(struct art_config* artPtr)
 static void Art_rxByteDeInit(struct art_config* artPtr)
 {
 	Dev_denRxTimer();
-	CLR_BIT(artPtr->statusReg,ART_STATUS_REG_TX);
+	CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX);
 	artPtr->rxBitIdx = 0;
 	if (FIFO_OK != Fifo_write(artPtr->txFifo,artPtr->txBuffer))
 	{
@@ -71,51 +73,70 @@ void Art_duplexMode(struct art_config* artPtr,art_mod mode)
 
 void Art_gpioInterrupt(struct art_config* artPtr)
 {
+	//logger[logIdx++] = 3;
 	if(ART_LOW == Dev_getPinAvg())
 	{
-		SET_BIT(artPtr->statusReg,ART_STATUS_REG_RX);
 		Dev_enRxTimer();
-
-		Dev_updateRxTimerValue(artPtr->etu/* some arithmetic */);
-
+		//logger[logIdx++] = 4;
+		SET_BIT(artPtr->statusReg,ART_STATUS_REG_RX);
+		Dev_updateRxTimerValue(350);
 		Dev_denGpioInterrupt();
 	}
 }
 
 void Art_rxTimerInterrupt(struct art_config* artPtr)
 {
-	if(artPtr-> rxBitIdx > ART_BYTE+2) /* 12.5 etu */
+	if(0==artPtr->rxBitIdx)
 	{
-		Art_rxByteDeInit(artPtr);
-	}
-	if(ART_BYTE+2 == artPtr-> rxBitIdx) /* 11.5 etu */
-	{
-		Dev_setGpioIn();
+		logger[logIdx++] = 6;
+		Dev_updateRxTimerValue(artPtr->etu);
 	}
 	if(ART_BYTE+1 == artPtr-> rxBitIdx)	/* 10.5 etu */
 	{
+		//logger[logIdx++] = 9;
 		if (ART_LOW!= GET_BIT(artPtr->statusReg, \
 										ART_STATUS_REG_PARITY_ERR))
 		{
+			//logger[logIdx++] = 10;
 			Dev_setGpioOut();
 			Dev_setPin(ART_LOW);
 		}
 	}
-	if(ART_BYTE+2 == artPtr->rxBitIdx)
+	if(ART_BYTE == artPtr->rxBitIdx)
 	{
+		//logger[logIdx++] = 8;
 		artPtr->statusReg |= Dev_calcParity()<< \
 										ART_STATUS_REG_PARITY_ERR;
 	}
 	if(artPtr->rxBitIdx < ART_BYTE)
 	{
+		//logger[logIdx++] = 7;
 		artPtr->rxBuffer |= (Dev_getPinAvg() & 0x01) << \
 													artPtr->rxBitIdx;
 	}
+	//logger[logIdx++] = 5;
 	artPtr->rxBitIdx++;
+	if(ART_BYTE+3 == artPtr-> rxBitIdx) /* 11.5 etu */
+	{
+		Dev_setGpioIn();
+		Dev_enGpioInterrupt();
+		Dev_denRxTimer();
+		logger[logIdx++] = 11;
+		logger[logIdx++] = artPtr->rxBuffer;
+		artPtr->rxBuffer = 0;
+		artPtr->rxBitIdx = 0;
+		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX);
+		//Dev_raiseRxComplInt();
+	}
 }
 
 void Art_txTimerInterrupt(struct art_config* artPtr)
 {
+	if(0==artPtr->rxBitIdx)
+	{
+		//logger[logIdx++] = 6;
+		Dev_updateTxTimerValue(artPtr->etu);
+	}
 	if(ART_BYTE+1 == artPtr->txBitIdx)
 	{
 		Dev_setPin(ART_HIGH);
@@ -152,8 +173,9 @@ uint8_t Art_txByteStart(struct art_config* artPtr)
 		SET_BIT(artPtr->statusReg,ART_STATUS_REG_TX);
 		Fifo_read(artPtr->txFifo, &(artPtr->txBuffer));
 		artPtr->txBitIdx = 0;
-		Dev_setPin(ART_LOW);
 		Dev_enTxTimer();
+		Dev_setPin(ART_LOW);
+		Dev_updateTxTimerValue(350);
 	}
 	else
 	{
@@ -167,7 +189,9 @@ uint8_t Art_rxByteStart(struct art_config* artPtr)
 	uint8_t ret = ART_OK;
 	if (ART_STATUS_RX_READY == artPtr->statusReg)
 	{
+		//logger[logIdx++] = 1;
 		artPtr->rxBuffer = 0;
+		artPtr->rxBitIdx = 0;
 		Dev_enGpioInterrupt();
 	}
 	else
