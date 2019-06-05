@@ -11,9 +11,6 @@
 
 struct dev_config* devPtr;
 
-extern uint8_t logger[];
-extern uint8_t logIdx;
-
 void Dev_timerInit(void)
 {
 	SET_BIT(TCCR1B, WGM12); /* CTC */
@@ -108,14 +105,12 @@ uint8_t Dev_getPinAvg(void)
 {
 	int8_t r = 0;
 	uint8_t ret;
-	//logger[logIdx] = GET_BIT(PORTB, PB6);
 	r += (GET_BIT(PINB, PB6))?1:-1;
 	r += (GET_BIT(PINB, PB6))?1:-1;
 	r += (GET_BIT(PINB, PB6))?1:-1;
 	r += (GET_BIT(PINB, PB6))?1:-1;
 	r += (GET_BIT(PINB, PB6))?1:-1;
 	ret = (r>0)?1:0;
-	//logger[logIdx++] = ret;
 	return ret;
 }
 
@@ -170,17 +165,13 @@ ISR(TIMER0_COMPA_vect)
 }
 ISR(PCINT1_vect)
 {
-	//logger[logIdx++] = 2;
-	//logger[logIdx++] = GET_BIT(PINB,PB6);
 	Art_gpioInterrupt(devPtr-> artPtr);
 }
 
 ISR(INT0_vect)
 {
-	devPtr->artPtr->statusReg = 0;
-	Fifo_write(devPtr->artPtr->txBuffer, 239);
-	Art_duplexMode(devPtr->artPtr,TRANSMITTER);
-	Art_txByteStart(devPtr->artPtr);
+
+	SET_BIT(devPtr->artPtr->statusReg,ART_STATUS_REG_RX_COMP);
 }
 
 void Dev_init(struct dev_config * devSt)
@@ -199,8 +190,7 @@ void Dev_raiseTxComplInt(void)
 void Dev_raiseRxComplInt(void)
 {
 	static uint8_t count =0;
-	logger[logIdx] == 144;
-	if (3 == count)
+	if (5 == count)
 	{
 		TGL_BIT(PORTD,PD2);
 		count = 0;

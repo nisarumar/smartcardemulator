@@ -29,17 +29,14 @@
 #include "Art.h"
 #include "Atr.h"
 
-extern uint8_t logger[];
-extern uint8_t logIdx;
 
 static uint8_t ATR_BYTE[ATR_BYTE_TO_SEND]={ATR_BYTE_0,ATR_BYTE_1,ATR_BYTE_2,ATR_BYTE_3};
+uint8_t AES_KEY[16]={0};
 
 uint8_t Atr_main(struct art_config* artPtr)
 {
 	uint8_t byteSent = 0;
 	CLR_BIT(ATR_PORT,ATR_PIN);
-	//logger[logIdx++] = 14;
-	//logger[logIdx++]==GET_BIT(PINB,PB3);
 	while(ATR_LOW == GET_BIT(PINB,ATR_PIN));
 	while (byteSent < ATR_BYTE_TO_SEND)
 	{
@@ -51,6 +48,81 @@ uint8_t Atr_main(struct art_config* artPtr)
 				byteSent++;
 		}
 	}
-	logger[logIdx++] = 13;
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	artPtr->statusReg=0;
+	byteSent=0;
+	Art_duplexMode(artPtr,RECEIVER);
+	Art_rxByteStart(artPtr);
+	while(byteSent < 5)
+	{
+		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
+		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
+		byteSent++;
+	}
+	byteSent=0;
+	while(byteSent<16)
+	{
+		artPtr->statusReg = 0;
+		Art_duplexMode(artPtr,TRANSMITTER);
+		Fifo_write(artPtr->txFifo,239);
+		Art_txByteStart(artPtr);
+		while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+		artPtr->statusReg=0;
+		Art_duplexMode(artPtr,RECEIVER);
+		Art_rxByteStart(artPtr);
+		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
+		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
+		AES_KEY[byteSent++]=artPtr->rxBuffer;
+	}
 	return ATR_OK;
+}
+
+uint8_t Apdu_getResponse(struct art_config* artPtr)
+{
+	uint8_t byteSent = 0;
+	artPtr->statusReg = 0;
+	Art_duplexMode(artPtr,TRANSMITTER);
+	Fifo_write(artPtr->txFifo,0x61);
+	Art_txByteStart(artPtr);
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	Fifo_write(artPtr->txFifo,0x10);
+	Art_txByteStart(artPtr);
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	artPtr->statusReg=0;
+	byteSent=0;
+	Art_duplexMode(artPtr,RECEIVER);
+	Art_rxByteStart(artPtr);
+	while(byteSent < 5)
+	{
+		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
+		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
+		byteSent++;
+	}
+	byteSent=0;
+	artPtr->statusReg = 0;
+	Art_duplexMode(artPtr,TRANSMITTER);
+	Fifo_write(artPtr->txFifo,0xC0);
+	Art_txByteStart(artPtr);
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	byteSent=0;
+	while (byteSent < 16)
+	{
+		if(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+		{
+				artPtr->statusReg = 0;
+				Fifo_write(artPtr->txFifo,AES_KEY[byteSent++]);
+				Art_txByteStart(artPtr);
+		}
+	}
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	artPtr->statusReg = 0;
+	Art_duplexMode(artPtr,TRANSMITTER);
+	Fifo_write(artPtr->txFifo,0x9D);
+	Art_txByteStart(artPtr);
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	Fifo_write(artPtr->txFifo,0x00);
+	Art_txByteStart(artPtr);
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	
+	return ART_OK;
 }
