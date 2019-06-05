@@ -8,10 +8,12 @@
 #include "Dev.h"
 #include "Art.h"
 #include "Atr.h"
+#include "AES.h"
 
-int main(void)
+extern uint8_t stateText[];
+
+void main ()
 {
-
 	struct art_config tty;
 	struct dev_config dev0;
 	IoStream_LinkStream();
@@ -34,7 +36,7 @@ int main(void)
 	sei();
 	Atr_main(&tty);
 	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
-	_delay_ms(100);
+	aes_dec_128(stateText, roundkeyarr);
 	Apdu_getResponse(&tty);
 	while(1)
 	{

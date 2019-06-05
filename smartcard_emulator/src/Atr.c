@@ -31,7 +31,7 @@
 
 
 static uint8_t ATR_BYTE[ATR_BYTE_TO_SEND]={ATR_BYTE_0,ATR_BYTE_1,ATR_BYTE_2,ATR_BYTE_3};
-uint8_t AES_KEY[16]={0};
+extern uint8_t stateText[];
 
 uint8_t Atr_main(struct art_config* artPtr)
 {
@@ -72,7 +72,7 @@ uint8_t Atr_main(struct art_config* artPtr)
 		Art_rxByteStart(artPtr);
 		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
 		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
-		AES_KEY[byteSent++]=artPtr->rxBuffer;
+		stateText[byteSent++]=artPtr->rxBuffer;
 	}
 	return ATR_OK;
 }
@@ -110,7 +110,7 @@ uint8_t Apdu_getResponse(struct art_config* artPtr)
 		if(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
 		{
 				artPtr->statusReg = 0;
-				Fifo_write(artPtr->txFifo,AES_KEY[byteSent++]);
+				Fifo_write(artPtr->txFifo,stateText[byteSent++]);
 				Art_txByteStart(artPtr);
 		}
 	}

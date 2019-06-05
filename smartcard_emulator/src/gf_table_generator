@@ -1,0 +1,31 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdint.h>
+uint8_t gf256mul(uint8_t in1, uint8_t in2){
+    uint8_t prod = 0;
+    for (; in2; in2 >>= 1) {
+        if (in2 & 1)
+            prod ^= in1;
+        if (in1 & 0x80)
+            in1 = (in1 << 1) ^ 0x1b;
+        else
+            in1 <<= 1;
+    }
+    return prod;
+}
+
+gf_table_generator()
+{	uint8_t log[256];
+	uint8_t antilog[256];
+	log[0]=0;
+	antilog[0]= 0x01;
+	for(int i=1 ; i<255; i++)
+	{
+		antilog[i]=gf256mul(antilog[i-1],0x05);	
+		log[antilog[i]]=i; 
+	}
+	log[1]=0x0;
+	antilog[255]=0x01;
+	return 0;
+}
+
