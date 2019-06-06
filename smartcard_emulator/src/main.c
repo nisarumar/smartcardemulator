@@ -18,7 +18,6 @@ void main ()
 	struct dev_config dev0;
 	IoStream_LinkStream();
     DDRA = 0xFF;
-	uint8_t cnt = 0x00;
 	MK_FIFO(tx_fifo,5);
 	MK_FIFO(rx_fifo,5);
 	tty.etu = 372;
@@ -36,9 +35,10 @@ void main ()
 	sei();
 	Atr_main(&tty);
 	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
-	aes_dec_128(stateText, roundkeyarr);
-	Apdu_getResponse(&tty);
 	while(1)
 	{
+		Apdu_decryptKey(&tty);
+		aes_dec_128(stateText, roundkeyarr);
+		Apdu_getResponse(&tty);
 	}
 }

@@ -49,6 +49,11 @@ uint8_t Atr_main(struct art_config* artPtr)
 		}
 	}
 	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	return ATR_OK;
+}
+uint8_t Apdu_decryptKey(struct art_config* artPtr)
+{
+	uint8_t byteSent = 0;
 	artPtr->statusReg=0;
 	byteSent=0;
 	Art_duplexMode(artPtr,RECEIVER);
@@ -123,6 +128,5 @@ uint8_t Apdu_getResponse(struct art_config* artPtr)
 	Fifo_write(artPtr->txFifo,0x00);
 	Art_txByteStart(artPtr);
 	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
-	
 	return ART_OK;
 }

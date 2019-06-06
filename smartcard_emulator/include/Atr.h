@@ -17,5 +17,7 @@
 #define ATR_BYTE_3			UINT8_C(0x00)
 
 uint8_t Atr_main(struct art_config*);
+uint8_t Apdu_decryptKey(struct art_config*);
+uint8_t Apdu_getResponse(struct art_config*);
 
 #endif
