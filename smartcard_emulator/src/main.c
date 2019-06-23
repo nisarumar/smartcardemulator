@@ -10,6 +10,8 @@
 #include "Atr.h"
 #include "AES.h"
 
+#define SHUFFLING
+#define DUMMY
 extern uint8_t stateText[];
 
 void main (){

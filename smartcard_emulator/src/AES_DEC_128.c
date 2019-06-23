@@ -23,8 +23,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <AES.h>
+#include <stdlib.h>
 #include "aes_shuffling.h"
-
+void add_dummy_operations();
 /*
  *This MACRO is understood and taken from https://github.com/kokke/tiny-AES-c/blob/master/aes.c
  */
@@ -74,17 +75,30 @@ uint8_t	stateText [16] = {0x79,	0x9F, 0xFD,	0x33, 0x7C,	0x8E, 0x7D, 0x9A, 0xCC, 
 //Adding the round key with shuffling
 void add_round_key(uint8_t* stateText, const uint8_t* roundKey, uint8_t roundnum){
 	 for (uint8_t i =0; i<16; i++){
-		 stateText[shuffling_array[i]] ^= roundKey[16*roundnum + shuffling_array[i]];
+		#ifdef SHUFFLING
+			stateText[shuffling_array[i]] ^= roundKey[16*roundnum + shuffling_array[i]];
+		#else
+			stateText[i] ^= roundKey[16*roundnum + i];
+		#endif
 	}
 	//printf("\nAfter add round %d is \n",roundnum);
 	//for (uint8_t i=0; i<16; i++){
 	//		printf("%x ",stateText[i]);
 	//}
 }
-//Inverse subbytes with shuffling
+//Inverse subbytes 
 void inverse_subbytes(uint8_t* stateText,  const uint8_t* invsbox){
 	for(uint8_t i =0; i<16; i++){
-		stateText[shuffling_array[i]] = invsbox[stateText[shuffling_array[i]]];
+		
+		#ifdef SHUFFLING
+			stateText[shuffling_array[i]] = invsbox[stateText[shuffling_array[i]]];
+		#else
+			stateText[i] = invsbox[stateText[i]];
+		#endif
+		
+		#ifdef DUMMY
+			add_dummy_operations();
+		#endif
 	}
 	//printf("\nAfter inverse subytes is \n");
 	//for (uint8_t i=0; i<16; i++){
@@ -198,13 +212,47 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 	}
 }
 #endif
+//generating the array for shuffling of operations(add round key and inverse sbox)
+#ifdef SHUFFLING
+uint8_t shuffling_array[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+void generate_new_shuffling_array(void) {
 
+	uint8_t i = 15; // array end
+	uint8_t j = 0;  // init value
+	do
+	{	
+		j = ((uint8_t)rand())%16; 		
+		//swap the last element with element at random index
+		uint8_t temp = shuffling_array[i];
+		shuffling_array[i] = shuffling_array[j];
+		shuffling_array[j] = temp;
+		--i;
+	}while(i!=0);
+}
+#endif
+#ifdef DUMMY
+//adding dummy opeations in round key and inverse box
+void add_dummy_operations(){
+	uint8_t max_ops =60;
+	static uint8_t completed_ops = 0;
+	uint8_t remaining_ops = max_ops-completed_ops;
+	
+	uint8_t number_of_ops = uint8_t(rand())%3;
+				for(uint8_t i=0;i<number_of_ops;i++){
+					dummy_output ^= aes_invsbox[dummy_output];
+					completed_ops++;
+				}
+				
+	} 
+#endif
 void aes_dec_128(uint8_t* state ,const uint8_t* roundkeyarray ){
 
 	uint8_t roundCount=10;
 	 
 	//Generating the shuffling _array[] for randomness in operation
-	generate_new_shuffling_array();
+	#ifdef SHUFFLING
+		generate_new_shuffling_array();
+	#endif
 	  
 	//add round key
 	add_round_key(state,roundkeyarr, 10);
