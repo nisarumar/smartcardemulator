@@ -23,7 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <AES.h>
-//#define gf256mul(a,b) gf_antilog_table[(gf_log_table[a] + gf_log_table[b])%255]
+#include "aes_shuffling.h"
 
 /*
  *This MACRO is understood and taken from https://github.com/kokke/tiny-AES-c/blob/master/aes.c
@@ -71,19 +71,20 @@ const uint8_t roundkeyarr [176] ={
 uint8_t	stateText [16] = {0x79,	0x9F, 0xFD,	0x33, 0x7C,	0x8E, 0x7D, 0x9A, 0xCC, 0xD0, 0xCA, 0xC5, 0x19, 0x16, 0x33, 0x4D};
 //uint8_t key[16]={0xB5, 0x2E, 0x33, 0xB1, 0x2A, 0x71, 0x1D, 0xCB, 0xF9, 0xA7, 0x8A, 0xD7, 0x39, 0xD8, 0x82, 0x08 };
 
-
+//Adding the round key with shuffling
 void add_round_key(uint8_t* stateText, const uint8_t* roundKey, uint8_t roundnum){
 	 for (uint8_t i =0; i<16; i++){
-		 stateText[i] ^= roundKey[16*roundnum + i];
+		 stateText[shuffling_array[i]] ^= roundKey[16*roundnum + shuffling_array[i]];
 	}
 	//printf("\nAfter add round %d is \n",roundnum);
 	//for (uint8_t i=0; i<16; i++){
 	//		printf("%x ",stateText[i]);
 	//}
 }
+//Inverse subbytes with shuffling
 void inverse_subbytes(uint8_t* stateText,  const uint8_t* invsbox){
 	for(uint8_t i =0; i<16; i++){
-		stateText[i] = invsbox[stateText[i]];
+		stateText[shuffling_array[i]] = invsbox[stateText[shuffling_array[i]]];
 	}
 	//printf("\nAfter inverse subytes is \n");
 	//for (uint8_t i=0; i<16; i++){
@@ -195,31 +196,30 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 			//printf(" After xor %d is %x %x %x %x \n",i,k[i],k[i+1],k[i+2],k[i+3]);
 
 	}
-	printf("\n");
-	for (uint8_t i=0; i<176; i+=16){
-		printf(" %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x \n",k[i],k[i+1],k[i+2],k[i+3],k[i+4],k[i+5],k[i+6],k[i+7],k[i+8],k[i+9],k[i+10],k[i+11],k[i+12],k[i+13],k[i+14],k[i+15]);
-		}
 }
 #endif
 
 void aes_dec_128(uint8_t* state ,const uint8_t* roundkeyarray ){
 
-	  uint8_t roundCount=10;
-	  //add round key
+	uint8_t roundCount=10;
+	 
+	//Generating the shuffling _array[] for randomness in operation
+	generate_new_shuffling_array();
+	  
+	//add round key
+	add_round_key(state,roundkeyarr, 10);
+	roundCount--;
+	  
+	// first 9 rounds
+	for (; roundCount > 0 ; roundCount--){
+		inverse_shift_rows(state);
+		inverse_subbytes(state,aes_invsbox);
+		add_round_key(state,roundkeyarr,roundCount);
+		inverse_mix_coloumns(state);
+	}
 
-	   add_round_key(stateText,roundkeyarr, 10);
-	   roundCount--;
-	  // first 9 rounds
-	   for (; roundCount > 0 ; roundCount--){
-			inverse_shift_rows(stateText);
-			inverse_subbytes(stateText,aes_invsbox);
-			add_round_key(stateText,roundkeyarr,roundCount);
-			inverse_mix_coloumns(stateText);
-		}
-
-		//final round
-		inverse_shift_rows(stateText);
-		inverse_subbytes(stateText,aes_invsbox);
-		add_round_key(stateText,roundkeyarr,roundCount);
-
+	//final round
+	inverse_shift_rows(state);
+	inverse_subbytes(state,aes_invsbox);
+	add_round_key(state,roundkeyarr,roundCount);
 }

@@ -12,11 +12,12 @@
 
 extern uint8_t stateText[];
 
-void main ()
-{
+void main (){
+	IoStream_LinkStream();
+	/*
 	struct art_config tty;
 	struct dev_config dev0;
-	IoStream_LinkStream();
+	
     DDRA = 0xFF;
 	MK_FIFO(tx_fifo,5);
 	MK_FIFO(rx_fifo,5);
@@ -34,11 +35,19 @@ void main ()
 	Art_duplexMode(&tty,TRANSMITTER);
 	sei();
 	Atr_main(&tty);
-	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
-	while(1)
-	{
-		Apdu_decryptKey(&tty);
+	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX))*/;
+	//while(1)/{	
+		for (uint8_t i=0; i<16; i++){
+			printf("%x ",stateText[i]);	
+		}
+		printf("\n");
+		//Apdu_decryptKey(&tty);
 		aes_dec_128(stateText, roundkeyarr);
-		Apdu_getResponse(&tty);
-	}
+		//Apdu_getResponse(&tty);
+		
+		for (uint8_t i=0; i<16; i++){
+			printf("%x ",stateText[i]);
+			
+		}
+	//}
 }
