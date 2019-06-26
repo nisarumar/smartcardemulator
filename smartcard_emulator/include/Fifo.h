@@ -14,8 +14,6 @@ struct fifo_t{
 								struct fifo_t * name = \
 													& fifo_##name;\
 								static uint8_t fifo_buff_##name[size];\
-								name->buff = &fifo_buff_##name[0];\
-								name->sz = size & UINT8_MAX;
 
 #define FIFO_OK					UINT8_C(0)
 #define FIFO_NOK				UINT8_C(1)				

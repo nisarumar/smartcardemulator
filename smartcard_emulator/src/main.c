@@ -9,15 +9,24 @@
 #include "Art.h"
 #include "Atr.h"
 #include "AES.h"
+#include "Seed.h"
+
 
 extern uint8_t stateText[];
+extern struct fifo_t* WDTBUFF;
 
-void main ()
+void main (void)
 {
-	struct art_config tty;
-	struct dev_config dev0;
+/*	struct art_config tty;
+	struct dev_config dev0;*/
 	IoStream_LinkStream();
-    DDRA = 0xFF;
+	uint8_t data = 0;
+	DDRA = 0xFF;
+	PORTA = MCUSR;
+	MCUSR = 0;
+	printf("r\n");
+	//MK_FIFO(WDTBUFF,5);
+/*    DDRA = 0xFF;
 	MK_FIFO(tx_fifo,5);
 	MK_FIFO(rx_fifo,5);
 	tty.etu = 372;
@@ -31,14 +40,21 @@ void main ()
 	dev0.artPtr = &tty;
 	dev0.rxByteCount = 4;
 	Dev_init(&dev0);
-	Art_duplexMode(&tty,TRANSMITTER);
+	Art_duplexMode(&tty,TRANSMITTER);*/
 	sei();
-	Atr_main(&tty);
-	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
+	Seed_init();
+/*	Atr_main(&tty);
+	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));*/
 	while(1)
 	{
-		Apdu_decryptKey(&tty);
+/*		Apdu_decryptKey(&tty);
 		aes_dec_128(stateText, roundkeyarr);
-		Apdu_getResponse(&tty);
+		Apdu_getResponse(&tty);*/
+		_delay_ms(2500);
+		printf("L: %x\n",Fifo_fillLevel(WDTBUFF));
+		while(FIFO_OK==Fifo_read(WDTBUFF,&data))
+		{
+			printf("v: %x\n",data);
+		}
 	}
 }
