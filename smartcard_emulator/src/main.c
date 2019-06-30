@@ -12,9 +12,10 @@
 
 #define SHUFFLING
 #define DUMMY
+#define MASKING
 extern uint8_t stateText[];
 
-void main (){
+void main (void){
 	IoStream_LinkStream();
 	/*
 	struct art_config tty;
@@ -44,7 +45,7 @@ void main (){
 		}
 		printf("\n");
 		//Apdu_decryptKey(&tty);
-		aes_dec_128(stateText, roundkeyarr);
+		aes_dec_128(stateText);
 		//Apdu_getResponse(&tty);
 		
 		for (uint8_t i=0; i<16; i++){
