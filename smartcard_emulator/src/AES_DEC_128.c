@@ -25,6 +25,8 @@
 #include <AES.h>
 #include <stdlib.h>
 #include "aes_shuffling.h"
+#define SHUFFLING
+//#define DUMMY
 /*
  *This MACRO is understood and taken from https://github.com/kokke/tiny-AES-c/blob/master/aes.c
  */
@@ -92,11 +94,29 @@ void gen_masked_roundkey_array(void);
 #ifdef MASKING
 void gen_masked_roundkey_array(void){
 	for (uint8_t round=0; round <11; round++){
-		for(uint8_t row=0; row<4 ; row++){
+		if(round ==10){
+			for(uint8_t row=0; row<4 ; row++){
 			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^m_out_inv_col[row]^mask_in;
 			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^m_out_inv_col[row]^mask_in;
 			masked_round_key[(round<<4)+row + 8] = roundkeyarr[(round<<4)+row + 8]^m_out_inv_col[row]^mask_in;
 			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^m_out_inv_col[row]^mask_in;
+			}
+		}
+		else if (round>=1 and round<10){
+			for(uint8_t row=0; row<4 ; row++){
+			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^m_in_inv_col[row]^mask_out;
+			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^m_in_inv_col[row]^mask_out;
+			masked_round_key[(round<<4)+row + 8] = roundkeyarr[(round<<4)+row + 8]^m_in_inv_col[row]^mask_out;
+			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^m_in_inv_col[row]^mask_out;
+			}
+		}
+		else{
+			for(uint8_t row=0; row<4 ; row++){
+			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^mask_in;
+			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^mask_in;
+			masked_round_key[(round<<4)+row + 8] = roundkeyarr[(round<<4)+row + 8]^mask_in;
+			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^mask_in;
+			}	
 		}
 	}
 }
@@ -162,7 +182,7 @@ void add_round_key(uint8_t* stateText,uint8_t roundnum){
 	 for (uint8_t i =0; i<16; i++){
 		#ifdef SHUFFLING
 			stateText[shuffling_array[i]] ^= roundkeyarr[16*roundnum + shuffling_array[i]];
-		#elifdef MASKING
+		#elif MASKING
 			stateText[i] ^= masked_round_key[16*roundnum + i];
 		#else
 			stateText[i] ^= roundkeyarr[16*roundnum + i];
@@ -179,11 +199,29 @@ void inverse_subbytes(uint8_t* stateText, uint8_t roundNum){
 		
 		#ifdef SHUFFLING
 			stateText[shuffling_array[i]] = aes_invsbox[stateText[shuffling_array[i]]];
-		#elifdef MASKING 
+		#elif MASKING 
 			stateText[i] = masked_aes_invsbox[stateText[i]];
 		#else
 			stateText[i] = aes_invsbox[stateText[i]];
 		#endif
+
+		#ifdef DUMMY
+			uint8_t max_ops =60;
+			static uint8_t completed_ops = 0;
+			uint8_t current_ops_count =0;
+			uint8_t number_of_ops =0;
+			uint8_t dummy_output =0;
+			//uint8_t remaining_ops = max_ops-completed_ops;
+				//number_of_ops = round&(number_of_ops = max_ops - completed_ops)
+				if(roundNum==0){number_of_ops = max_ops - completed_ops;}
+				else{number_of_ops = (uint8_t)(rand()%5);}
+				while(completed_ops < max_ops && current_ops_count<number_of_ops){
+					dummy_output ^= aes_invsbox[dummy_output];
+					completed_ops++;
+					current_ops_count++;
+			}
+		#endif
+
 	}
 	//printf("\nAfter inverse subytes is \n");
 	//for (uint8_t i=0; i<16; i++){
@@ -315,6 +353,7 @@ void generate_new_shuffling_array(void) {
 	}while(i!=0);
 }
 #endif
+/*
 #ifdef DUMMY
 //adding dummy opeations in round key and inverse box
 void add_dummy_operations(uint8_t round){
@@ -322,7 +361,9 @@ void add_dummy_operations(uint8_t round){
 	static uint8_t completed_ops = 0;
 	uint8_t current_ops_count =0;
 	uint8_t number_of_ops =0;
+	uint8_t dummy_output =0;
 	//uint8_t remaining_ops = max_ops-completed_ops;
+			number_of_ops = round&(number_of_ops = max_ops - completed_ops)
 			if(round==0){number_of_ops = max_ops - completed_ops;}
 			else{number_of_ops = (uint8_t)(rand()%5);}
 			while(completed_ops < max_ops && current_ops_count<number_of_ops){
@@ -331,7 +372,7 @@ void add_dummy_operations(uint8_t round){
 				current_ops_count++;
 			}			
 } 
-#endif
+#endif*/
 void aes_dec_128(uint8_t* state){
 
 	uint8_t roundCount=10;
@@ -344,9 +385,11 @@ void aes_dec_128(uint8_t* state){
 	#ifdef MASKING
 		init_masking();
 		gen_masked_roundkey_array();
+		mask_state(state);
 	#endif
 	  
 	//add round key
+	
 	add_round_key(state,10);
 	roundCount--;
 	  
@@ -358,7 +401,7 @@ void aes_dec_128(uint8_t* state){
 		inverse_mix_coloumns(state);
 		//remasking
 		#ifdef MASKING
-		remasking_state(state);
+		remask_state(state);
 		#endif
 	}
 
@@ -366,4 +409,6 @@ void aes_dec_128(uint8_t* state){
 	inverse_shift_rows(state);
 	inverse_subbytes(state,roundCount);
 	add_round_key(state,roundCount);
+	mask_state(state);
+	
 }

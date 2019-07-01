@@ -11,17 +11,16 @@
 #include "AES.h"
 
 #define SHUFFLING
-#define DUMMY
-#define MASKING
+//#define DUMMY
+//#define MA#SKING
 extern uint8_t stateText[];
 
 void main (void){
 	IoStream_LinkStream();
-	/*
 	struct art_config tty;
 	struct dev_config dev0;
 	
-    DDRA = 0xFF;
+    	DDRA = 0xFF;
 	MK_FIFO(tx_fifo,5);
 	MK_FIFO(rx_fifo,5);
 	tty.etu = 372;
@@ -36,21 +35,17 @@ void main (void){
 	dev0.rxByteCount = 4;
 	Dev_init(&dev0);
 	Art_duplexMode(&tty,TRANSMITTER);
+	TRIGGER_INIT();
 	sei();
 	Atr_main(&tty);
-	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX))*/;
-	//while(1)/{	
-		for (uint8_t i=0; i<16; i++){
-			printf("%x ",stateText[i]);	
-		}
-		printf("\n");
-		//Apdu_decryptKey(&tty);
-		aes_dec_128(stateText);
-		//Apdu_getResponse(&tty);
+	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
+	while(1){	
 		
-		for (uint8_t i=0; i<16; i++){
-			printf("%x ",stateText[i]);
+		Apdu_decryptKey(&tty);
+		TRIGGER_SET();
+		aes_dec_128(stateText);
+		TRIGGER_CLR();
+		Apdu_getResponse(&tty);
 			
-		}
-	//}
+	}
 }
