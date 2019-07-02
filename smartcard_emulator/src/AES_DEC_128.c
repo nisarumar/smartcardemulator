@@ -133,10 +133,10 @@ void mask_state(uint8_t *stateText){
 void remasking_state(uint8_t *stateText){
 	
 	for (uint8_t i =0 ; i<4 ;i++){
-		stateText[i+0] ^=m_in_inv_col[i]^mask_in; 
-		stateText[i+4] ^=m_in_inv_col[i]^mask_in; 
-		stateText[i+8] ^=m_in_inv_col[i]^mask_in; 
-		stateText[i+12] ^=m_in_inv_col[i]^mask_in; 
+		stateText[i+0] ^=m_out_inv_col[i]^mask_in; 
+		stateText[i+4] ^=m_out_inv_col[i]^mask_in; 
+		stateText[i+8] ^=m_out_inv_col[i]^mask_in; 
+		stateText[i+12] ^=m_out_inv_col[i]^mask_in; 
 	}
 }
 
@@ -144,17 +144,13 @@ void remasking_state(uint8_t *stateText){
 void generate_output_masks(void)
 {
     //Creating output masks starts here.
-    m_out_inv_col[0] = gf256mul(m_in_inv_col[0],0x0e)^gf256mul(m_in_inv_col[1],0x0b)\
-						^gf256mul(m_in_inv_col[2],0x0d)^gf256mul(m_in_inv_col[3],0x09);
+    m_out_inv_col[0] = gf256mul(m_in_inv_col[0],0x0e)^gf256mul(m_in_inv_col[1],0x0b)^gf256mul(m_in_inv_col[2],0x0d)^gf256mul(m_in_inv_col[3],0x09);
 						
-    m_out_inv_col[1] = gf256mul(m_in_inv_col[0],0x09)^gf256mul(m_in_inv_col[1],0x0e)\
-						^gf256mul(m_in_inv_col[2],0x0b)^gf256mul(m_in_inv_col[3],0x0d);
+    m_out_inv_col[1] = gf256mul(m_in_inv_col[0],0x09)^gf256mul(m_in_inv_col[1],0x0e)^gf256mul(m_in_inv_col[2],0x0b)^gf256mul(m_in_inv_col[3],0x0d);
 						
-    m_out_inv_col[2] = gf256mul(m_in_inv_col[0],0x0d)^gf256mul(m_in_inv_col[1],0x09)\
-						^gf256mul(m_in_inv_col[2],0x0e)^gf256mul(m_in_inv_col[3],0x0b);
+    m_out_inv_col[2] = gf256mul(m_in_inv_col[0],0x0d)^gf256mul(m_in_inv_col[1],0x09)^gf256mul(m_in_inv_col[2],0x0e)^gf256mul(m_in_inv_col[3],0x0b);
 						
-    m_out_inv_col[3] = gf256mul(m_in_inv_col[0],0x0b)^gf256mul(m_in_inv_col[1],0x0d)\
-						^gf256mul(m_in_inv_col[2],0x09)^gf256mul(m_in_inv_col[3],0x0e);
+    m_out_inv_col[3] = gf256mul(m_in_inv_col[0],0x0b)^gf256mul(m_in_inv_col[1],0x0d)^gf256mul(m_in_inv_col[2],0x09)^gf256mul(m_in_inv_col[3],0x0e);
     //Creating output masks ends here.
 }
 void init_masking(void){
@@ -171,8 +167,8 @@ void init_masking(void){
 	// compute output masks for each coloumn in inverse sub bytes  from input masks
 	generate_output_masks();
 	
-	for(uint8_t i =0 ; i<256 ; i++){
-		masked_aes_invsbox[i^mask_out] = aes_invsbox[i]^mask_in; ;
+	for(uint16_t i =0 ; i<256 ; i++){
+		masked_aes_invsbox[i^mask_out] = aes_invsbox[i]^mask_in;
 	}
 }
 #endif
