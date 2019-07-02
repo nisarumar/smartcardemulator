@@ -405,5 +405,4 @@ void aes_dec_128(uint8_t* state){
 	inverse_shift_rows(state);
 	inverse_subbytes(state,roundCount);
 	add_round_key(state,roundCount);
-	
 }
