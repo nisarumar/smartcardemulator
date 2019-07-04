@@ -27,6 +27,8 @@
 #include "Fifo.h"
 #include "Art.h"
 #include "Dev.h"
+#include "BkrndTask.h"
+#include "Seed.h"
 
 /* @todo make dev struct member of artPtr struct*/
 static void Art_txByteDeInit(struct art_config* artPtr)
@@ -76,6 +78,7 @@ void Art_gpioInterrupt(struct art_config* artPtr)
 	if(ART_LOW == Dev_getPinAvg())
 	#endif
 	{
+		Seed_pause();
 		Dev_enRxTimer();
 		SET_BIT(artPtr->statusReg,ART_STATUS_REG_RX);
 		Dev_updateRxTimerValue(350);

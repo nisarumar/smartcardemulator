@@ -195,9 +195,9 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 			//printf(" After xor %d is %x %x %x %x \n",i,k[i],k[i+1],k[i+2],k[i+3]);
 
 	}
-	printf("\n");
+//	printf("\n");
 	for (uint8_t i=0; i<176; i+=16){
-		printf(" %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x \n",k[i],k[i+1],k[i+2],k[i+3],k[i+4],k[i+5],k[i+6],k[i+7],k[i+8],k[i+9],k[i+10],k[i+11],k[i+12],k[i+13],k[i+14],k[i+15]);
+//		printf(" %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x %x \n",k[i],k[i+1],k[i+2],k[i+3],k[i+4],k[i+5],k[i+6],k[i+7],k[i+8],k[i+9],k[i+10],k[i+11],k[i+12],k[i+13],k[i+14],k[i+15]);
 		}
 }
 #endif

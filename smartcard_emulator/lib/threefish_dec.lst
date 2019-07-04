@@ -1,0 +1,146 @@
+   1               	# 1 "../lib/threefish_dec.S"
+   1               	; AVR 8-bit microcontroller Threefish primitive -- http://www.skein-hash.info/
+   0               	
+   0               	
+   2               	; Copyright © 2010 Jörg Walter <info@syntax-k.de>
+   3               	;
+   4               	; This library is free software: you can redistribute it and/or modify
+   5               	; it under the terms of the GNU General Public License as published by
+   6               	; the Free Software Foundation, either version 3 of the License, or
+   7               	; (at your option) any later version.
+   8               	;
+   9               	; This program is distributed in the hope that it will be useful,
+  10               	; but WITHOUT ANY WARRANTY; without even the implied warranty of
+  11               	; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  12               	; GNU General Public License for more details.
+  13               	;
+  14               	; You should have received a copy of the GNU General Public License
+  15               	; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  16               	
+  17               	.include "threefish_macros.s"
+  18               	
+  19               	.altmacro
+  20               	
+  21               	
+  22               	; add current subkey, keep threefish_round pointers up to date
+  23               	; Assumes that r31 has already been stored in threefish_tmp.
+  24               	; Omits certain operations if this is the last addition.
+  25               	.macro sub_subkey r1b0:req, r1b1:req, r1b2:req, r1b3:req, r1b4:req, r1b5:req, r1b6:req, r1b7:req, r
+  26               		temp_ld r31, threefish_round_key
+  27               		out stack_lo, r31
+  28               	
+  29               		sub64_stack r31, r1b0, r1b1, r1b2, r1b3, r1b4, r1b5, r1b6, r1b7
+  30               		temp_ld r31, threefish_tmp
+  31               		temp_st threefish_tmp, r16
+  32               		check_wrap r16, key
+  33               	
+  34               		sub64_stack r16, r2b0, r2b1, r2b2, r2b3, r2b4, r2b5, r2b6, r2b7
+  35               		check_wrap r16, key
+  36               		sub64_stack r16, r3b0, r3b1, r3b2, r3b3, r3b4, r3b5, r3b6, r3b7
+  37               		check_wrap r16, key
+  38               		sub64_stack r16, r4b0, r4b1, r4b2, r4b3, r4b4, r4b5, r4b6, r4b7
+  39               		.ifb last
+  40               			check_wrap r16, key, 1
+  41               			temp_st threefish_round_key, r16
+  42               		.endif
+  43               	
+  44               		temp_ld r16, threefish_round_tweak
+  45               		out stack_lo, r16
+  46               		sub64_stack r16, r2b0, r2b1, r2b2, r2b3, r2b4, r2b5, r2b6, r2b7
+  47               		check_wrap r16, tweak
+  48               		sub64_stack r16, r3b0, r3b1, r3b2, r3b3, r3b4, r3b5, r3b6, r3b7
+  49               		.ifb last
+  50               			check_wrap r16, tweak, 1
+  51               			temp_st threefish_round_tweak, r16
+  52               		.endif
+  53               	
+  54               		temp_ld r16, threefish_round
+  55               		dec r16
+  56               		.ifb last
+  57               			temp_st threefish_round, r16
+  58               		.endif
+  59               		sub64_8 r4b0, r4b1, r4b2, r4b3, r4b4, r4b5, r4b6, r4b7, r16
+  60               		.ifb last
+  61               			temp_ld r16, threefish_tmp
+  62               		.endif
+  63               	.endm
+  64               	
+  65               	; inverse MIX operation
+  66               	.macro unMIX j:req, rot:req
+  67               		regcall eor64, w1j&j, w0j&j
+  68               		; The fourth arg influences how register renaming is done in some cases.
+  69               		; This particular value makes threefish_256_8threefish_rounds have the same
+  70               		; register layout on exit as it had on call.
+  71               		rotate 1, j, 64-rot, j
+  72               		regcall sub64, w0j&j, w1j&j
+  73               	.endm
+  74               	
+  75               	
+  76               	; 8 threefish_rounds of threefish
+  77               	; Takes internal state in r0-r31, returns it in r0-r31 in the
+  78               	; exact same layout (see MIX above).
+  79               	; Assumes that r31 has already been stored in threefish_tmp and will return
+  80               	; with r31 stored in threefish_tmp.
+  81               	threefish_256_dec_8threefish_rounds:
+  82:../lib/threefish_dec.S **** 	sp_init return_address-1
+  83:../lib/threefish_dec.S **** 	reginit
+  84:../lib/threefish_dec.S **** 	regcall sub_subkey, w0j0, w1j0, w0j1, w1j1
+  85:../lib/threefish_dec.S **** 	enable_int
+  86:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+  87:../lib/threefish_dec.S **** 	unMIX 0, 32
+  88:../lib/threefish_dec.S **** 	unMIX 1, 32
+  89:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+  90:../lib/threefish_dec.S **** 	unMIX 0, 58
+  91:../lib/threefish_dec.S **** 	unMIX 1, 22
+  92:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+  93:../lib/threefish_dec.S **** 	unMIX 0, 46
+  94:../lib/threefish_dec.S **** 	unMIX 1, 12
+  95:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+  96:../lib/threefish_dec.S **** 	unMIX 0, 25
+  97:../lib/threefish_dec.S **** 	unMIX 1, 33
+  98:../lib/threefish_dec.S **** 	temp_st threefish_tmp, r31
+  99:../lib/threefish_dec.S **** 	disable_int r31
+ 100:../lib/threefish_dec.S **** 	regcall sub_subkey, w0j0, w1j0, w0j1, w1j1
+ 101:../lib/threefish_dec.S **** 	enable_int
+ 102:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+ 103:../lib/threefish_dec.S **** 	unMIX 0, 5
+ 104:../lib/threefish_dec.S **** 	unMIX 1, 37
+ 105:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+ 106:../lib/threefish_dec.S **** 	unMIX 0, 23
+ 107:../lib/threefish_dec.S **** 	unMIX 1, 40
+ 108:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+ 109:../lib/threefish_dec.S **** 	unMIX 0, 52
+ 110:../lib/threefish_dec.S **** 	unMIX 1, 57
+ 111:../lib/threefish_dec.S **** 	permute 0, 3, 2, 1
+ 112:../lib/threefish_dec.S **** 	unMIX 0, 14
+ 113:../lib/threefish_dec.S **** 	unMIX 1, 16
+ 114:../lib/threefish_dec.S **** 	temp_st threefish_tmp, r31
+ 115:../lib/threefish_dec.S **** 	disable_int r31
+ 116:../lib/threefish_dec.S **** 	sp_reg r31
+ 117:../lib/threefish_dec.S **** 	sp_goto r31, return_address
+ 118:../lib/threefish_dec.S **** 	ret
+ 119               	
+ 120               	; Global entry point, AVR-GCC/AVR-libc C ABI
+ 121               	; This is NOT reentrant (which would be of limited use, if at all, on an AVR)
+ 122               	; r24, r25 = address of params struct, aligned to 256 bytes
+ 123               	; minimal-state variant:
+ 124               	; r8 - r23 = tweak words (r8 = word 0 lsb, r23 = word 1 msb)
+ 125               	.global threefish_256_dec
+ 127               	threefish_256_dec:
+ 128:../lib/threefish_dec.S **** 	call threefish_setup
+ 129:../lib/threefish_dec.S **** 	setup_key_schedule 72, 1
+ 130               		.rept 9
+ 131:../lib/threefish_dec.S **** 		call threefish_256_dec_8threefish_rounds
+ 132:../lib/threefish_dec.S **** 	.endr
+ 133:../lib/threefish_dec.S **** 	regcall sub_subkey, w0j0, w1j0, w0j1, w1j1, last
+ 134:../lib/threefish_dec.S **** 	jmp threefish_finish
+ 135               	
+ 136               	threefish_size_dec:
+DEFINED SYMBOLS
+../lib/threefish_dec.S:81     .text:0000000000000000 threefish_256_dec_8threefish_rounds
+../lib/threefish_dec.S:127    .text:0000000000000002 threefish_256_dec
+../lib/threefish_dec.S:136    .text:000000000000002e threefish_size_dec
+
+UNDEFINED SYMBOLS
+threefish_setup
+threefish_finish

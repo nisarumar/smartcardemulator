@@ -1,0 +1,2046 @@
+   1               		.file	"skein.c"
+   2               	__SP_H__ = 0x3e
+   3               	__SP_L__ = 0x3d
+   4               	__SREG__ = 0x3f
+   5               	__tmp_reg__ = 0
+   6               	__zero_reg__ = 1
+   7               		.text
+   8               	.Ltext0:
+   9               		.cfi_sections	.debug_frame
+  10               	.global	skein_256_256_default_iv
+  12               	skein_256_256_default_iv:
+  13               	.LFB2:
+  14               		.file 1 "../lib/skein.c"
+   1:../lib/skein.c **** /*
+   2:../lib/skein.c **** 	AVR 8-bit microcontroller Skein hashing -- http://www.skein-hash.info/
+   3:../lib/skein.c **** 	Copyright © 2010 Jörg Walter <info@syntax-k.de>
+   4:../lib/skein.c **** 
+   5:../lib/skein.c **** 	This library is free software: you can redistribute it and/or modify
+   6:../lib/skein.c **** 	it under the terms of the GNU General Public License as published by
+   7:../lib/skein.c **** 	the Free Software Foundation, either version 3 of the License, or
+   8:../lib/skein.c **** 	(at your option) any later version.
+   9:../lib/skein.c **** 
+  10:../lib/skein.c **** 	This program is distributed in the hope that it will be useful,
+  11:../lib/skein.c **** 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+  12:../lib/skein.c **** 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  13:../lib/skein.c **** 	GNU General Public License for more details.
+  14:../lib/skein.c **** 
+  15:../lib/skein.c **** 	You should have received a copy of the GNU General Public License
+  16:../lib/skein.c **** 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  17:../lib/skein.c **** */
+  18:../lib/skein.c **** 
+  19:../lib/skein.c **** #define I_KNOW_ABOUT_THREEFISH_ALIGNMENT_RESTRICTIONS
+  20:../lib/skein.c **** #include <fkein.h>
+  21:../lib/skein.c **** #include <string.h>
+  22:../lib/skein.c **** #include <avr/pgmspace.h>
+  23:../lib/skein.c **** #include "ubi.h"
+  24:../lib/skein.c **** #include "debug.h"
+  25:../lib/skein.c **** 
+  26:../lib/skein.c **** static PROGMEM const char skein_default_iv[32] = { 
+  27:../lib/skein.c **** 	0x49, 0xB4, 0x48, 0xD0, 0x60, 0xA8, 0x9D, 0xFC,
+  28:../lib/skein.c **** 	0x33, 0xD8, 0xA7, 0x9F, 0x47, 0x66, 0xCA, 0x2F,
+  29:../lib/skein.c **** 	0x0F, 0x84, 0x56, 0x66, 0x89, 0xC3, 0x3B, 0xB3,
+  30:../lib/skein.c **** 	0x69, 0xDA, 0xE8, 0xFD, 0x20, 0xE9, 0x54, 0x6A 
+  31:../lib/skein.c **** };
+  32:../lib/skein.c **** 
+  33:../lib/skein.c **** char skein_iv[32];
+  34:../lib/skein.c **** 
+  35:../lib/skein.c **** void skein_256_256_default_iv()
+  36:../lib/skein.c **** {
+  15               		.loc 1 36 0
+  16               		.cfi_startproc
+  17               	/* prologue: function */
+  18               	/* frame size = 0 */
+  19               	/* stack size = 0 */
+  20               	.L__stack_usage = 0
+  37:../lib/skein.c **** 	memcpy_P(skein_iv, skein_default_iv, 32);
+  21               		.loc 1 37 0
+  22 0000 40E2      		ldi r20,lo8(32)
+  23 0002 50E0      		ldi r21,0
+  24 0004 60E0      		ldi r22,lo8(skein_default_iv)
+  25 0006 70E0      		ldi r23,hi8(skein_default_iv)
+  26 0008 80E0      		ldi r24,lo8(skein_iv)
+  27 000a 90E0      		ldi r25,hi8(skein_iv)
+  28 000c 0C94 0000 		jmp memcpy_P
+  29               	.LVL0:
+  30               		.cfi_endproc
+  31               	.LFE2:
+  33               	.global	skein_256_256_personalize_M
+  35               	skein_256_256_personalize_M:
+  36               	.LFB3:
+  38:../lib/skein.c **** }
+  39:../lib/skein.c **** 
+  40:../lib/skein.c **** void skein_256_256_personalize_M(threefish_param_t *tparam)
+  41:../lib/skein.c **** {
+  37               		.loc 1 41 0
+  38               		.cfi_startproc
+  39               	.LVL1:
+  40 0010 6F92      		push r6
+  41               	.LCFI0:
+  42               		.cfi_def_cfa_offset 3
+  43               		.cfi_offset 6, -2
+  44 0012 7F92      		push r7
+  45               	.LCFI1:
+  46               		.cfi_def_cfa_offset 4
+  47               		.cfi_offset 7, -3
+  48 0014 8F92      		push r8
+  49               	.LCFI2:
+  50               		.cfi_def_cfa_offset 5
+  51               		.cfi_offset 8, -4
+  52 0016 9F92      		push r9
+  53               	.LCFI3:
+  54               		.cfi_def_cfa_offset 6
+  55               		.cfi_offset 9, -5
+  56 0018 AF92      		push r10
+  57               	.LCFI4:
+  58               		.cfi_def_cfa_offset 7
+  59               		.cfi_offset 10, -6
+  60 001a BF92      		push r11
+  61               	.LCFI5:
+  62               		.cfi_def_cfa_offset 8
+  63               		.cfi_offset 11, -7
+  64 001c CF92      		push r12
+  65               	.LCFI6:
+  66               		.cfi_def_cfa_offset 9
+  67               		.cfi_offset 12, -8
+  68 001e DF92      		push r13
+  69               	.LCFI7:
+  70               		.cfi_def_cfa_offset 10
+  71               		.cfi_offset 13, -9
+  72 0020 EF92      		push r14
+  73               	.LCFI8:
+  74               		.cfi_def_cfa_offset 11
+  75               		.cfi_offset 14, -10
+  76 0022 FF92      		push r15
+  77               	.LCFI9:
+  78               		.cfi_def_cfa_offset 12
+  79               		.cfi_offset 15, -11
+  80 0024 0F93      		push r16
+  81               	.LCFI10:
+  82               		.cfi_def_cfa_offset 13
+  83               		.cfi_offset 16, -12
+  84 0026 1F93      		push r17
+  85               	.LCFI11:
+  86               		.cfi_def_cfa_offset 14
+  87               		.cfi_offset 17, -13
+  88 0028 CF93      		push r28
+  89               	.LCFI12:
+  90               		.cfi_def_cfa_offset 15
+  91               		.cfi_offset 28, -14
+  92 002a DF93      		push r29
+  93               	.LCFI13:
+  94               		.cfi_def_cfa_offset 16
+  95               		.cfi_offset 29, -15
+  96               	/* prologue: function */
+  97               	/* frame size = 0 */
+  98               	/* stack size = 14 */
+  99               	.L__stack_usage = 14
+ 100 002c EC01      		movw r28,r24
+ 101               	.LVL2:
+  42:../lib/skein.c **** 	unsigned char len = 31;
+  43:../lib/skein.c **** 	memcpy_P(tparam->key, skein_default_iv, 32);
+ 102               		.loc 1 43 0
+ 103 002e 40E2      		ldi r20,lo8(32)
+ 104 0030 50E0      		ldi r21,0
+ 105 0032 60E0      		ldi r22,lo8(skein_default_iv)
+ 106 0034 70E0      		ldi r23,hi8(skein_default_iv)
+ 107 0036 0896      		adiw r24,8
+ 108               	.LVL3:
+ 109 0038 0E94 0000 		call memcpy_P
+ 110               	.LVL4:
+  44:../lib/skein.c **** 	while (len >= 0 && !tparam->text[len]) len--;
+ 111               		.loc 1 44 0
+ 112 003c FE01      		movw r30,r28
+ 113 003e E95B      		subi r30,-71
+ 114 0040 FF4F      		sbci r31,-1
+ 115 0042 8081      		ld r24,Z
+ 116 0044 8111      		cpse r24,__zero_reg__
+ 117 0046 00C0      		rjmp .L6
+ 118               		.loc 1 44 0 is_stmt 0 discriminator 2
+ 119 0048 0FE1      		ldi r16,lo8(31)
+ 120               	.LVL5:
+ 121               	.L4:
+ 122 004a 0150      		subi r16,lo8(-(-1))
+ 123               	.LVL6:
+ 124 004c 802E      		mov r8,r16
+ 125 004e 912C      		mov r9,__zero_reg__
+ 126 0050 FE01      		movw r30,r28
+ 127 0052 E80D      		add r30,r8
+ 128 0054 F91D      		adc r31,r9
+ 129 0056 90A5      		ldd r25,Z+40
+ 130 0058 9923      		tst r25
+ 131 005a 01F0      		breq .L4
+ 132 005c 8FEF      		ldi r24,-1
+ 133 005e 881A      		sub r8,r24
+ 134 0060 980A      		sbc r9,r24
+ 135               	.LVL7:
+ 136               	.L3:
+  45:../lib/skein.c **** 	ubi_iterate(tparam, tparam->text, 32, (SKEIN_SINGLE | Tprs) << 8, len+1, skein_iv);
+ 137               		.loc 1 45 0 is_stmt 1
+ 138 0062 3E01      		movw r6,r28
+ 139 0064 88E2      		ldi r24,40
+ 140 0066 680E      		add r6,r24
+ 141 0068 711C      		adc r7,__zero_reg__
+ 142               	.LVL8:
+ 143               	.LBB4:
+ 144               	.LBB5:
+ 145               		.file 2 "../lib/ubi.h"
+   1:../lib/ubi.h  **** /*
+   2:../lib/ubi.h  **** 	AVR 8-bit microcontroller Skein hashing -- http://www.skein-hash.info/
+   3:../lib/ubi.h  **** 	Copyright © 2010 Jörg Walter <info@syntax-k.de>
+   4:../lib/ubi.h  **** 
+   5:../lib/ubi.h  **** 	This library is free software: you can redistribute it and/or modify
+   6:../lib/ubi.h  **** 	it under the terms of the GNU General Public License as published by
+   7:../lib/ubi.h  **** 	the Free Software Foundation, either version 3 of the License, or
+   8:../lib/ubi.h  **** 	(at your option) any later version.
+   9:../lib/ubi.h  **** 
+  10:../lib/ubi.h  **** 	This program is distributed in the hope that it will be useful,
+  11:../lib/ubi.h  **** 	but WITHOUT ANY WARRANTY; without even the implied warranty of
+  12:../lib/ubi.h  **** 	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  13:../lib/ubi.h  **** 	GNU General Public License for more details.
+  14:../lib/ubi.h  **** 
+  15:../lib/ubi.h  **** 	You should have received a copy of the GNU General Public License
+  16:../lib/ubi.h  **** 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  17:../lib/ubi.h  **** */
+  18:../lib/ubi.h  **** 
+  19:../lib/ubi.h  **** inline static const char *ubi_iterate(threefish_param_t *tparam, const char *message, unsigned char
+  20:../lib/ubi.h  **** {
+  21:../lib/ubi.h  **** 	unsigned char i;
+  22:../lib/ubi.h  **** 	const char *real_msg = message;
+  23:../lib/ubi.h  **** 
+  24:../lib/ubi.h  **** 	if (message_len < 32) {
+  25:../lib/ubi.h  **** 		memcpy(tparam->text, message, message_len);
+  26:../lib/ubi.h  **** 		memset(tparam->text+message_len, 0, 32-message_len);
+  27:../lib/ubi.h  **** 		message = tparam->text;
+  28:../lib/ubi.h  **** 	}
+  29:../lib/ubi.h  **** 	threefish_256_enc(tparam, tweak7, 0, 0, 0, 0, 0, position_offset >> 16, position_offset & 0xffff, 
+ 146               		.loc 2 29 0
+ 147 006a 80E0      		ldi r24,lo8(skein_iv)
+ 148 006c 90E0      		ldi r25,hi8(skein_iv)
+ 149 006e 9F93      		push r25
+ 150               	.LCFI14:
+ 151               		.cfi_def_cfa_offset 17
+ 152 0070 8F93      		push r24
+ 153               	.LCFI15:
+ 154               		.cfi_def_cfa_offset 18
+ 155 0072 7F92      		push r7
+ 156               	.LCFI16:
+ 157               		.cfi_def_cfa_offset 19
+ 158 0074 6F92      		push r6
+ 159               	.LCFI17:
+ 160               		.cfi_def_cfa_offset 20
+ 161 0076 A12C      		mov r10,__zero_reg__
+ 162 0078 B12C      		mov r11,__zero_reg__
+ 163 007a C12C      		mov r12,__zero_reg__
+ 164 007c D12C      		mov r13,__zero_reg__
+ 165 007e E12C      		mov r14,__zero_reg__
+ 166 0080 F12C      		mov r15,__zero_reg__
+ 167 0082 00E0      		ldi r16,0
+ 168 0084 10E0      		ldi r17,0
+ 169 0086 20E0      		ldi r18,0
+ 170 0088 30E0      		ldi r19,0
+ 171 008a 40E0      		ldi r20,0
+ 172 008c 50E0      		ldi r21,0
+ 173 008e 60E0      		ldi r22,0
+ 174 0090 78EC      		ldi r23,lo8(-56)
+ 175 0092 CE01      		movw r24,r28
+ 176 0094 0E94 0000 		call threefish_256_enc
+ 177               	.LVL9:
+ 178 0098 D301      		movw r26,r6
+ 179 009a E0E0      		ldi r30,lo8(skein_iv)
+ 180 009c F0E0      		ldi r31,hi8(skein_iv)
+ 181 009e 0F90      		pop __tmp_reg__
+ 182 00a0 0F90      		pop __tmp_reg__
+ 183 00a2 0F90      		pop __tmp_reg__
+ 184 00a4 0F90      		pop __tmp_reg__
+ 185               	.LCFI18:
+ 186               		.cfi_def_cfa_offset 16
+ 187               	.LVL10:
+ 188               	.L5:
+  30:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 189               		.loc 2 30 0
+ 190 00a6 ED01      		movw r28,r26
+ 191 00a8 2991      		ld r18,Y+
+ 192 00aa 4E01      		movw r8,r28
+ 193 00ac 3081      		ld r19,Z
+ 194 00ae 2327      		eor r18,r19
+ 195 00b0 EF01      		movw r28,r30
+ 196 00b2 2993      		st Y+,r18
+ 197 00b4 5E01      		movw r10,r28
+ 198 00b6 1196      		adiw r26,1
+ 199 00b8 7C90      		ld r7,X
+ 200 00ba 1197      		sbiw r26,1
+ 201 00bc C180      		ldd r12,Z+1
+ 202 00be 7C24      		eor r7,r12
+ 203 00c0 7182      		std Z+1,r7
+ 204 00c2 E401      		movw r28,r8
+ 205 00c4 9980      		ldd r9,Y+1
+ 206 00c6 E501      		movw r28,r10
+ 207 00c8 B980      		ldd r11,Y+1
+ 208 00ca 9B24      		eor r9,r11
+ 209 00cc 9982      		std Y+1,r9
+ 210 00ce 1396      		adiw r26,3
+ 211 00d0 DC90      		ld r13,X
+ 212 00d2 1397      		sbiw r26,3
+ 213 00d4 E380      		ldd r14,Z+3
+ 214 00d6 DE24      		eor r13,r14
+ 215 00d8 D382      		std Z+3,r13
+ 216 00da 1496      		adiw r26,4
+ 217 00dc FC90      		ld r15,X
+ 218 00de 1497      		sbiw r26,4
+ 219 00e0 1481      		ldd r17,Z+4
+ 220 00e2 F126      		eor r15,r17
+ 221 00e4 F482      		std Z+4,r15
+ 222 00e6 1596      		adiw r26,5
+ 223 00e8 5C91      		ld r21,X
+ 224 00ea 1597      		sbiw r26,5
+ 225 00ec 6581      		ldd r22,Z+5
+ 226 00ee 5627      		eor r21,r22
+ 227 00f0 5583      		std Z+5,r21
+ 228 00f2 1696      		adiw r26,6
+ 229 00f4 7C91      		ld r23,X
+ 230 00f6 1697      		sbiw r26,6
+ 231 00f8 D681      		ldd r29,Z+6
+ 232 00fa 7D27      		eor r23,r29
+ 233 00fc 7683      		std Z+6,r23
+ 234 00fe 1796      		adiw r26,7
+ 235 0100 8C91      		ld r24,X
+ 236 0102 1797      		sbiw r26,7
+ 237               	.LVL11:
+ 238 0104 1896      		adiw r26,8
+ 239 0106 0781      		ldd r16,Z+7
+ 240 0108 8027      		eor r24,r16
+ 241 010a 8783      		std Z+7,r24
+ 242 010c 3896      		adiw r30,8
+ 243 010e D0E0      		ldi r29,hi8(skein_iv+32)
+ 244 0110 E030      		cpi r30,lo8(skein_iv+32)
+ 245 0112 FD07      		cpc r31,r29
+ 246 0114 01F4      		brne .L5
+ 247               	/* epilogue start */
+ 248               	.LBE5:
+ 249               	.LBE4:
+  46:../lib/skein.c **** }
+ 250               		.loc 1 46 0
+ 251 0116 DF91      		pop r29
+ 252 0118 CF91      		pop r28
+ 253 011a 1F91      		pop r17
+ 254 011c 0F91      		pop r16
+ 255 011e FF90      		pop r15
+ 256 0120 EF90      		pop r14
+ 257 0122 DF90      		pop r13
+ 258 0124 CF90      		pop r12
+ 259 0126 BF90      		pop r11
+ 260 0128 AF90      		pop r10
+ 261 012a 9F90      		pop r9
+ 262 012c 8F90      		pop r8
+ 263               	.LVL12:
+ 264 012e 7F90      		pop r7
+ 265 0130 6F90      		pop r6
+ 266               	.LVL13:
+ 267 0132 0895      		ret
+ 268               	.LVL14:
+ 269               	.L6:
+  44:../lib/skein.c **** 	ubi_iterate(tparam, tparam->text, 32, (SKEIN_SINGLE | Tprs) << 8, len+1, skein_iv);
+ 270               		.loc 1 44 0
+ 271 0134 80E2      		ldi r24,lo8(32)
+ 272 0136 882E      		mov r8,r24
+ 273 0138 912C      		mov r9,__zero_reg__
+ 274 013a 00C0      		rjmp .L3
+ 275               		.cfi_endproc
+ 276               	.LFE3:
+ 278               	.global	skein_256_256
+ 280               	skein_256_256:
+ 281               	.LFB4:
+  47:../lib/skein.c **** 
+  48:../lib/skein.c **** void skein_256_256(threefish_param_t *tparam, const char *message, short message_len, char *out)
+  49:../lib/skein.c **** {
+ 282               		.loc 1 49 0
+ 283               		.cfi_startproc
+ 284               	.LVL15:
+ 285 013c 2F92      		push r2
+ 286               	.LCFI19:
+ 287               		.cfi_def_cfa_offset 3
+ 288               		.cfi_offset 2, -2
+ 289 013e 3F92      		push r3
+ 290               	.LCFI20:
+ 291               		.cfi_def_cfa_offset 4
+ 292               		.cfi_offset 3, -3
+ 293 0140 4F92      		push r4
+ 294               	.LCFI21:
+ 295               		.cfi_def_cfa_offset 5
+ 296               		.cfi_offset 4, -4
+ 297 0142 5F92      		push r5
+ 298               	.LCFI22:
+ 299               		.cfi_def_cfa_offset 6
+ 300               		.cfi_offset 5, -5
+ 301 0144 6F92      		push r6
+ 302               	.LCFI23:
+ 303               		.cfi_def_cfa_offset 7
+ 304               		.cfi_offset 6, -6
+ 305 0146 7F92      		push r7
+ 306               	.LCFI24:
+ 307               		.cfi_def_cfa_offset 8
+ 308               		.cfi_offset 7, -7
+ 309 0148 8F92      		push r8
+ 310               	.LCFI25:
+ 311               		.cfi_def_cfa_offset 9
+ 312               		.cfi_offset 8, -8
+ 313 014a 9F92      		push r9
+ 314               	.LCFI26:
+ 315               		.cfi_def_cfa_offset 10
+ 316               		.cfi_offset 9, -9
+ 317 014c AF92      		push r10
+ 318               	.LCFI27:
+ 319               		.cfi_def_cfa_offset 11
+ 320               		.cfi_offset 10, -10
+ 321 014e BF92      		push r11
+ 322               	.LCFI28:
+ 323               		.cfi_def_cfa_offset 12
+ 324               		.cfi_offset 11, -11
+ 325 0150 CF92      		push r12
+ 326               	.LCFI29:
+ 327               		.cfi_def_cfa_offset 13
+ 328               		.cfi_offset 12, -12
+ 329 0152 DF92      		push r13
+ 330               	.LCFI30:
+ 331               		.cfi_def_cfa_offset 14
+ 332               		.cfi_offset 13, -13
+ 333 0154 EF92      		push r14
+ 334               	.LCFI31:
+ 335               		.cfi_def_cfa_offset 15
+ 336               		.cfi_offset 14, -14
+ 337 0156 FF92      		push r15
+ 338               	.LCFI32:
+ 339               		.cfi_def_cfa_offset 16
+ 340               		.cfi_offset 15, -15
+ 341 0158 0F93      		push r16
+ 342               	.LCFI33:
+ 343               		.cfi_def_cfa_offset 17
+ 344               		.cfi_offset 16, -16
+ 345 015a 1F93      		push r17
+ 346               	.LCFI34:
+ 347               		.cfi_def_cfa_offset 18
+ 348               		.cfi_offset 17, -17
+ 349 015c CF93      		push r28
+ 350               	.LCFI35:
+ 351               		.cfi_def_cfa_offset 19
+ 352               		.cfi_offset 28, -18
+ 353 015e DF93      		push r29
+ 354               	.LCFI36:
+ 355               		.cfi_def_cfa_offset 20
+ 356               		.cfi_offset 29, -19
+ 357 0160 CDB7      		in r28,__SP_L__
+ 358 0162 DEB7      		in r29,__SP_H__
+ 359               	.LCFI37:
+ 360               		.cfi_def_cfa_register 28
+ 361 0164 2A97      		sbiw r28,10
+ 362               	.LCFI38:
+ 363               		.cfi_def_cfa_offset 30
+ 364 0166 0FB6      		in __tmp_reg__,__SREG__
+ 365 0168 F894      		cli
+ 366 016a DEBF      		out __SP_H__,r29
+ 367 016c 0FBE      		out __SREG__,__tmp_reg__
+ 368 016e CDBF      		out __SP_L__,r28
+ 369               	/* prologue: function */
+ 370               	/* frame size = 10 */
+ 371               	/* stack size = 28 */
+ 372               	.L__stack_usage = 28
+ 373 0170 9C83      		std Y+4,r25
+ 374 0172 8B83      		std Y+3,r24
+ 375 0174 7E83      		std Y+6,r23
+ 376 0176 6D83      		std Y+5,r22
+ 377 0178 5A83      		std Y+2,r21
+ 378 017a 4983      		std Y+1,r20
+ 379 017c 2F83      		std Y+7,r18
+ 380 017e 3887      		std Y+8,r19
+ 381               	.LVL16:
+  50:../lib/skein.c **** 	char tweak7 = SKEIN_FIRST | Tmsg;
+  51:../lib/skein.c **** 	short position_offset = 0;
+  52:../lib/skein.c **** 	memcpy(tparam->key, skein_iv, 32);
+ 382               		.loc 1 52 0
+ 383 0180 E0E0      		ldi r30,lo8(skein_iv)
+ 384 0182 F0E0      		ldi r31,hi8(skein_iv)
+ 385 0184 DC01      		movw r26,r24
+ 386 0186 1896      		adiw r26,8
+ 387 0188 80E2      		ldi r24,lo8(32)
+ 388               	.LVL17:
+ 389               		0:
+ 390 018a 0190      		ld r0,Z+
+ 391 018c 0D92      		st X+,r0
+ 392 018e 8A95      		dec r24
+ 393 0190 01F4      		brne 0b
+ 394               	.LVL18:
+  53:../lib/skein.c **** 	DEBUG_64(tparam->key, 4);
+  54:../lib/skein.c **** 
+  55:../lib/skein.c **** 	while (message_len > 32) {
+ 395               		.loc 1 55 0
+ 396 0192 2981      		ldd r18,Y+1
+ 397 0194 3A81      		ldd r19,Y+2
+ 398               	.LVL19:
+ 399 0196 2132      		cpi r18,33
+ 400 0198 3105      		cpc r19,__zero_reg__
+ 401 019a 04F4      		brge .+2
+ 402 019c 00C0      		rjmp .L109
+ 403 019e 8B81      		ldd r24,Y+3
+ 404 01a0 9C81      		ldd r25,Y+4
+ 405 01a2 0896      		adiw r24,8
+ 406 01a4 9A87      		std Y+10,r25
+ 407 01a6 8987      		std Y+9,r24
+ 408 01a8 2D80      		ldd r2,Y+5
+ 409 01aa 3E80      		ldd r3,Y+6
+ 410 01ac 412C      		mov r4,__zero_reg__
+ 411 01ae 512C      		mov r5,__zero_reg__
+ 412 01b0 70E7      		ldi r23,lo8(112)
+ 413 01b2 0B81      		ldd r16,Y+3
+ 414 01b4 1C81      		ldd r17,Y+4
+ 415 01b6 085D      		subi r16,-40
+ 416 01b8 1F4F      		sbci r17,-1
+ 417 01ba 3801      		movw r6,r16
+ 418               	.LVL20:
+ 419               	.L22:
+  56:../lib/skein.c **** 		position_offset += 32;
+ 420               		.loc 1 56 0
+ 421 01bc 30E2      		ldi r19,32
+ 422 01be 430E      		add r4,r19
+ 423 01c0 511C      		adc r5,__zero_reg__
+ 424               	.LVL21:
+ 425               	.LBB12:
+ 426               	.LBB13:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 427               		.loc 2 29 0
+ 428 01c2 8A84      		ldd r8,Y+10
+ 429 01c4 8F92      		push r8
+ 430 01c6 9985      		ldd r25,Y+9
+ 431 01c8 9F93      		push r25
+ 432 01ca 3F92      		push r3
+ 433 01cc 2F92      		push r2
+ 434 01ce 4201      		movw r8,r4
+ 435 01d0 A12C      		mov r10,__zero_reg__
+ 436 01d2 B12C      		mov r11,__zero_reg__
+ 437 01d4 C12C      		mov r12,__zero_reg__
+ 438 01d6 D12C      		mov r13,__zero_reg__
+ 439 01d8 E12C      		mov r14,__zero_reg__
+ 440 01da F12C      		mov r15,__zero_reg__
+ 441 01dc 00E0      		ldi r16,0
+ 442 01de 10E0      		ldi r17,0
+ 443 01e0 20E0      		ldi r18,0
+ 444 01e2 30E0      		ldi r19,0
+ 445 01e4 40E0      		ldi r20,0
+ 446 01e6 50E0      		ldi r21,0
+ 447 01e8 60E0      		ldi r22,0
+ 448 01ea 8B81      		ldd r24,Y+3
+ 449 01ec 9C81      		ldd r25,Y+4
+ 450 01ee 0E94 0000 		call threefish_256_enc
+ 451               	.LVL22:
+ 452 01f2 0F90      		pop __tmp_reg__
+ 453 01f4 0F90      		pop __tmp_reg__
+ 454 01f6 0F90      		pop __tmp_reg__
+ 455 01f8 0F90      		pop __tmp_reg__
+ 456 01fa 8985      		ldd r24,Y+9
+ 457 01fc 9A85      		ldd r25,Y+10
+ 458 01fe 8095      		com r24
+ 459 0200 9095      		com r25
+ 460 0202 860D      		add r24,r6
+ 461 0204 971D      		adc r25,r7
+ 462 0206 8770      		andi r24,7
+ 463 0208 9927      		clr r25
+ 464               	.LVL23:
+ 465               		.loc 2 30 0
+ 466 020a D101      		movw r26,r2
+ 467 020c 9D90      		ld r9,X+
+ 468 020e E985      		ldd r30,Y+9
+ 469 0210 FA85      		ldd r31,Y+10
+ 470 0212 3081      		ld r19,Z
+ 471 0214 9326      		eor r9,r19
+ 472 0216 9192      		st Z+,r9
+ 473 0218 E615      		cp r30,r6
+ 474 021a F705      		cpc r31,r7
+ 475 021c 01F4      		brne .+2
+ 476 021e 00C0      		rjmp .L103
+ 477 0220 0097      		sbiw r24,0
+ 478 0222 01F0      		breq .L108
+ 479 0224 8130      		cpi r24,1
+ 480 0226 9105      		cpc r25,__zero_reg__
+ 481 0228 01F0      		breq .L83
+ 482 022a 8230      		cpi r24,2
+ 483 022c 9105      		cpc r25,__zero_reg__
+ 484 022e 01F0      		breq .L84
+ 485 0230 8330      		cpi r24,3
+ 486 0232 9105      		cpc r25,__zero_reg__
+ 487 0234 01F0      		breq .L85
+ 488 0236 8430      		cpi r24,4
+ 489 0238 9105      		cpc r25,__zero_reg__
+ 490 023a 01F0      		breq .L86
+ 491 023c 8530      		cpi r24,5
+ 492 023e 9105      		cpc r25,__zero_reg__
+ 493 0240 01F0      		breq .L87
+ 494 0242 0697      		sbiw r24,6
+ 495 0244 01F0      		breq .L88
+ 496 0246 AD90      		ld r10,X+
+ 497 0248 B080      		ld r11,Z
+ 498 024a AB24      		eor r10,r11
+ 499 024c A192      		st Z+,r10
+ 500               	.L88:
+ 501 024e CD90      		ld r12,X+
+ 502 0250 D080      		ld r13,Z
+ 503 0252 CD24      		eor r12,r13
+ 504 0254 C192      		st Z+,r12
+ 505               	.LVL24:
+ 506               	.L87:
+ 507 0256 ED90      		ld r14,X+
+ 508 0258 F080      		ld r15,Z
+ 509 025a EF24      		eor r14,r15
+ 510 025c E192      		st Z+,r14
+ 511               	.LVL25:
+ 512               	.L86:
+ 513 025e 1D91      		ld r17,X+
+ 514 0260 4081      		ld r20,Z
+ 515 0262 1427      		eor r17,r20
+ 516 0264 1193      		st Z+,r17
+ 517               	.LVL26:
+ 518               	.L85:
+ 519 0266 5D91      		ld r21,X+
+ 520 0268 6081      		ld r22,Z
+ 521 026a 5627      		eor r21,r22
+ 522 026c 5193      		st Z+,r21
+ 523               	.LVL27:
+ 524               	.L84:
+ 525 026e 7D91      		ld r23,X+
+ 526 0270 2081      		ld r18,Z
+ 527 0272 7227      		eor r23,r18
+ 528 0274 7193      		st Z+,r23
+ 529               	.LVL28:
+ 530               	.L83:
+ 531 0276 0D91      		ld r16,X+
+ 532 0278 8080      		ld r8,Z
+ 533 027a 0825      		eor r16,r8
+ 534 027c 0193      		st Z+,r16
+ 535 027e E615      		cp r30,r6
+ 536 0280 F705      		cpc r31,r7
+ 537 0282 01F0      		breq .L103
+ 538               	.LVL29:
+ 539               	.L108:
+ 540 0284 BD01      		movw r22,r26
+ 541               	.L21:
+ 542               	.LVL30:
+ 543 0286 DB01      		movw r26,r22
+ 544 0288 9D91      		ld r25,X+
+ 545 028a 5D01      		movw r10,r26
+ 546 028c 9080      		ld r9,Z
+ 547 028e 9926      		eor r9,r25
+ 548 0290 DF01      		movw r26,r30
+ 549 0292 9D92      		st X+,r9
+ 550 0294 7D01      		movw r14,r26
+ 551 0296 DB01      		movw r26,r22
+ 552 0298 1196      		adiw r26,1
+ 553 029a BC91      		ld r27,X
+ 554 029c 3181      		ldd r19,Z+1
+ 555 029e B327      		eor r27,r19
+ 556 02a0 B183      		std Z+1,r27
+ 557 02a2 D501      		movw r26,r10
+ 558 02a4 1196      		adiw r26,1
+ 559 02a6 BC90      		ld r11,X
+ 560 02a8 D701      		movw r26,r14
+ 561 02aa 1196      		adiw r26,1
+ 562 02ac DC90      		ld r13,X
+ 563 02ae 1197      		sbiw r26,1
+ 564 02b0 BD24      		eor r11,r13
+ 565 02b2 1196      		adiw r26,1
+ 566 02b4 BC92      		st X,r11
+ 567 02b6 DB01      		movw r26,r22
+ 568 02b8 1396      		adiw r26,3
+ 569 02ba FC90      		ld r15,X
+ 570 02bc 1397      		sbiw r26,3
+ 571 02be 1381      		ldd r17,Z+3
+ 572 02c0 F126      		eor r15,r17
+ 573 02c2 F382      		std Z+3,r15
+ 574 02c4 1496      		adiw r26,4
+ 575 02c6 4C91      		ld r20,X
+ 576 02c8 1497      		sbiw r26,4
+ 577 02ca 5481      		ldd r21,Z+4
+ 578 02cc 4527      		eor r20,r21
+ 579 02ce 4483      		std Z+4,r20
+ 580 02d0 1596      		adiw r26,5
+ 581 02d2 2C91      		ld r18,X
+ 582 02d4 1597      		sbiw r26,5
+ 583 02d6 0581      		ldd r16,Z+5
+ 584 02d8 2027      		eor r18,r16
+ 585 02da 2583      		std Z+5,r18
+ 586 02dc 1696      		adiw r26,6
+ 587 02de 8C90      		ld r8,X
+ 588 02e0 1697      		sbiw r26,6
+ 589 02e2 8681      		ldd r24,Z+6
+ 590 02e4 8826      		eor r8,r24
+ 591 02e6 8682      		std Z+6,r8
+ 592 02e8 1796      		adiw r26,7
+ 593 02ea AC90      		ld r10,X
+ 594 02ec 685F      		subi r22,-8
+ 595 02ee 7F4F      		sbci r23,-1
+ 596 02f0 9781      		ldd r25,Z+7
+ 597 02f2 A926      		eor r10,r25
+ 598 02f4 A782      		std Z+7,r10
+ 599 02f6 3896      		adiw r30,8
+ 600 02f8 E615      		cp r30,r6
+ 601 02fa F705      		cpc r31,r7
+ 602 02fc 01F4      		brne .L21
+ 603               	.LVL31:
+ 604               	.L103:
+ 605 02fe B0E2      		ldi r27,32
+ 606 0300 2B0E      		add r2,r27
+ 607 0302 311C      		adc r3,__zero_reg__
+ 608               	.LVL32:
+ 609               	.LBE13:
+ 610               	.LBE12:
+  57:../lib/skein.c **** 		message = ubi_iterate(tparam, message, 32, tweak7 << 8, position_offset, tparam->key);
+  58:../lib/skein.c **** 		DEBUG_64(tparam->key, 4);
+  59:../lib/skein.c **** 		tweak7 &= ~SKEIN_FIRST;
+ 611               		.loc 1 59 0
+ 612 0304 70E3      		ldi r23,lo8(48)
+  55:../lib/skein.c **** 		position_offset += 32;
+ 613               		.loc 1 55 0
+ 614 0306 E981      		ldd r30,Y+1
+ 615 0308 FA81      		ldd r31,Y+2
+ 616 030a E419      		sub r30,r4
+ 617 030c F509      		sbc r31,r5
+ 618               	.LVL33:
+ 619 030e B197      		sbiw r30,33
+ 620 0310 04F0      		brlt .+2
+ 621 0312 00C0      		rjmp .L22
+ 622 0314 2981      		ldd r18,Y+1
+ 623 0316 3A81      		ldd r19,Y+2
+ 624 0318 2152      		subi r18,33
+ 625 031a 3109      		sbc r19,__zero_reg__
+ 626 031c 3695      		lsr r19
+ 627 031e 2795      		ror r18
+ 628 0320 3295      		swap r19
+ 629 0322 2295      		swap r18
+ 630 0324 2F70      		andi r18,0x0f
+ 631 0326 2327      		eor r18,r19
+ 632 0328 3F70      		andi r19,0x0f
+ 633 032a 2327      		eor r18,r19
+ 634 032c D901      		movw r26,r18
+ 635 032e 1196      		adiw r26,1
+ 636 0330 AA0F      		lsl r26
+ 637 0332 BB1F      		rol r27
+ 638 0334 A295      		swap r26
+ 639 0336 B295      		swap r27
+ 640 0338 B07F      		andi r27,0xf0
+ 641 033a BA27      		eor r27,r26
+ 642 033c A07F      		andi r26,0xf0
+ 643 033e BA27      		eor r27,r26
+ 644 0340 4981      		ldd r20,Y+1
+ 645 0342 5A81      		ldd r21,Y+2
+ 646 0344 4052      		subi r20,32
+ 647 0346 5109      		sbc r21,__zero_reg__
+ 648 0348 10EE      		ldi r17,lo8(-32)
+ 649 034a 1203      		mulsu r17,r18
+ 650 034c 1001      		movw r2,r0
+ 651 034e 139F      		mul r17,r19
+ 652 0350 300C      		add r3,r0
+ 653 0352 1124      		clr __zero_reg__
+ 654               	.LVL34:
+ 655 0354 6101      		movw r12,r2
+ 656 0356 C40E      		add r12,r20
+ 657 0358 D51E      		adc r13,r21
+ 658 035a DA82      		std Y+2,r13
+ 659 035c C982      		std Y+1,r12
+ 660 035e 4D80      		ldd r4,Y+5
+ 661 0360 5E80      		ldd r5,Y+6
+ 662               	.LVL35:
+ 663 0362 4A0E      		add r4,r26
+ 664 0364 5B1E      		adc r5,r27
+ 665 0366 5E82      		std Y+6,r5
+ 666 0368 4D82      		std Y+5,r4
+ 667 036a 412C      		mov r4,__zero_reg__
+ 668 036c 60EB      		ldi r22,lo8(-80)
+ 669 036e 562E      		mov r5,r22
+ 670 0370 4601      		movw r8,r12
+ 671               	.LVL36:
+ 672               	.L20:
+  60:../lib/skein.c **** 		message_len -= 32;
+  61:../lib/skein.c **** 	}
+  62:../lib/skein.c **** 
+  63:../lib/skein.c **** 	tweak7 |= SKEIN_LAST;
+  64:../lib/skein.c **** 	position_offset += message_len;
+ 673               		.loc 1 64 0
+ 674 0372 8A0E      		add r8,r26
+ 675 0374 9B1E      		adc r9,r27
+ 676               	.LVL37:
+  65:../lib/skein.c **** 	ubi_iterate(tparam, message, message_len, tweak7 << 8, position_offset, tparam->key);
+ 677               		.loc 1 65 0
+ 678 0376 6401      		movw r12,r8
+ 679 0378 092C      		mov __tmp_reg__,r9
+ 680 037a 000C      		lsl r0
+ 681 037c EE08      		sbc r14,r14
+ 682 037e FF08      		sbc r15,r15
+ 683 0380 3980      		ldd r3,Y+1
+ 684               	.LVL38:
+ 685               	.LBB14:
+ 686               	.LBB15:
+  24:../lib/ubi.h  **** 		memcpy(tparam->text, message, message_len);
+ 687               		.loc 2 24 0
+ 688 0382 FFE1      		ldi r31,lo8(31)
+ 689 0384 F315      		cp r31,r3
+ 690 0386 00F0      		brlo .+2
+ 691 0388 00C0      		rjmp .L23
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 692               		.loc 2 29 0
+ 693 038a 5701      		movw r10,r14
+ 694 038c CC24      		clr r12
+ 695 038e DD24      		clr r13
+ 696 0390 7A85      		ldd r23,Y+10
+ 697 0392 7F93      		push r23
+ 698 0394 6985      		ldd r22,Y+9
+ 699 0396 6F93      		push r22
+ 700 0398 EE80      		ldd r14,Y+6
+ 701 039a EF92      		push r14
+ 702 039c BD81      		ldd r27,Y+5
+ 703 039e BF93      		push r27
+ 704 03a0 C12C      		mov r12,__zero_reg__
+ 705 03a2 D12C      		mov r13,__zero_reg__
+ 706               	.LVL39:
+ 707 03a4 E12C      		mov r14,__zero_reg__
+ 708 03a6 F12C      		mov r15,__zero_reg__
+ 709 03a8 00E0      		ldi r16,0
+ 710 03aa 10E0      		ldi r17,0
+ 711 03ac 20E0      		ldi r18,0
+ 712 03ae 30E0      		ldi r19,0
+ 713 03b0 40E0      		ldi r20,0
+ 714 03b2 50E0      		ldi r21,0
+ 715 03b4 B201      		movw r22,r4
+ 716 03b6 8B81      		ldd r24,Y+3
+ 717 03b8 9C81      		ldd r25,Y+4
+ 718 03ba 0E94 0000 		call threefish_256_enc
+ 719               	.LVL40:
+ 720 03be 0F90      		pop __tmp_reg__
+ 721 03c0 0F90      		pop __tmp_reg__
+ 722 03c2 0F90      		pop __tmp_reg__
+ 723 03c4 0F90      		pop __tmp_reg__
+ 724               	.LVL41:
+ 725               	.L24:
+ 726 03c6 5FEF      		ldi r21,lo8(-1)
+ 727 03c8 530D      		add r21,r3
+ 728 03ca 5770      		andi r21,lo8(7)
+ 729               	.LVL42:
+ 730               		.loc 2 30 0
+ 731 03cc ED81      		ldd r30,Y+5
+ 732 03ce FE81      		ldd r31,Y+6
+ 733 03d0 5190      		ld r5,Z+
+ 734 03d2 A985      		ldd r26,Y+9
+ 735 03d4 BA85      		ldd r27,Y+10
+ 736 03d6 9C90      		ld r9,X
+ 737 03d8 5924      		eor r5,r9
+ 738 03da 5D92      		st X+,r5
+ 739 03dc BA87      		std Y+10,r27
+ 740 03de A987      		std Y+9,r26
+ 741 03e0 81E0      		ldi r24,lo8(1)
+ 742 03e2 3816      		cp r3,r24
+ 743 03e4 01F4      		brne .+2
+ 744 03e6 00C0      		rjmp .L26
+ 745 03e8 5523      		tst r21
+ 746 03ea 01F4      		brne .+2
+ 747 03ec 00C0      		rjmp .L25
+ 748 03ee 5130      		cpi r21,lo8(1)
+ 749 03f0 01F0      		breq .L77
+ 750 03f2 5230      		cpi r21,lo8(2)
+ 751 03f4 01F0      		breq .L78
+ 752 03f6 5330      		cpi r21,lo8(3)
+ 753 03f8 01F0      		breq .L79
+ 754 03fa 5430      		cpi r21,lo8(4)
+ 755 03fc 01F0      		breq .L80
+ 756 03fe 5530      		cpi r21,lo8(5)
+ 757 0400 01F0      		breq .L81
+ 758 0402 5630      		cpi r21,lo8(6)
+ 759 0404 01F0      		breq .L82
+ 760 0406 B190      		ld r11,Z+
+ 761 0408 FC90      		ld r15,X
+ 762 040a BF24      		eor r11,r15
+ 763 040c BD92      		st X+,r11
+ 764 040e BA87      		std Y+10,r27
+ 765 0410 A987      		std Y+9,r26
+ 766 0412 82E0      		ldi r24,lo8(2)
+ 767               	.L82:
+ 768 0414 8190      		ld r8,Z+
+ 769               	.LVL43:
+ 770 0416 AC90      		ld r10,X
+ 771 0418 8A24      		eor r8,r10
+ 772 041a 8D92      		st X+,r8
+ 773 041c BA87      		std Y+10,r27
+ 774 041e A987      		std Y+9,r26
+ 775 0420 8F5F      		subi r24,lo8(-(1))
+ 776               	.LVL44:
+ 777               	.L81:
+ 778 0422 9191      		ld r25,Z+
+ 779 0424 2C91      		ld r18,X
+ 780 0426 9227      		eor r25,r18
+ 781 0428 9D93      		st X+,r25
+ 782 042a BA87      		std Y+10,r27
+ 783 042c A987      		std Y+9,r26
+ 784 042e 8F5F      		subi r24,lo8(-(1))
+ 785               	.LVL45:
+ 786               	.L80:
+ 787 0430 4191      		ld r20,Z+
+ 788 0432 1C91      		ld r17,X
+ 789 0434 4127      		eor r20,r17
+ 790 0436 4D93      		st X+,r20
+ 791 0438 BA87      		std Y+10,r27
+ 792 043a A987      		std Y+9,r26
+ 793 043c 8F5F      		subi r24,lo8(-(1))
+ 794               	.LVL46:
+ 795               	.L79:
+ 796 043e 2190      		ld r2,Z+
+ 797 0440 CC90      		ld r12,X
+ 798 0442 2C24      		eor r2,r12
+ 799 0444 2D92      		st X+,r2
+ 800 0446 BA87      		std Y+10,r27
+ 801 0448 A987      		std Y+9,r26
+ 802 044a 8F5F      		subi r24,lo8(-(1))
+ 803               	.LVL47:
+ 804               	.L78:
+ 805 044c 4190      		ld r4,Z+
+ 806 044e 7C91      		ld r23,X
+ 807 0450 4726      		eor r4,r23
+ 808 0452 4D92      		st X+,r4
+ 809 0454 BA87      		std Y+10,r27
+ 810 0456 A987      		std Y+9,r26
+ 811 0458 8F5F      		subi r24,lo8(-(1))
+ 812               	.LVL48:
+ 813               	.L77:
+ 814 045a 6191      		ld r22,Z+
+ 815 045c EC90      		ld r14,X
+ 816 045e 6E25      		eor r22,r14
+ 817 0460 6D93      		st X+,r22
+ 818 0462 BA87      		std Y+10,r27
+ 819 0464 A987      		std Y+9,r26
+ 820 0466 8F5F      		subi r24,lo8(-(1))
+ 821 0468 3816      		cp r3,r24
+ 822 046a 01F4      		brne .+2
+ 823 046c 00C0      		rjmp .L26
+ 824               	.LVL49:
+ 825               	.L25:
+ 826 046e DF01      		movw r26,r30
+ 827 0470 DD90      		ld r13,X+
+ 828 0472 4D01      		movw r8,r26
+ 829 0474 A985      		ldd r26,Y+9
+ 830 0476 BA85      		ldd r27,Y+10
+ 831 0478 3C91      		ld r19,X
+ 832 047a D326      		eor r13,r19
+ 833 047c DD92      		st X+,r13
+ 834 047e 5D01      		movw r10,r26
+ 835 0480 5181      		ldd r21,Z+1
+ 836 0482 A985      		ldd r26,Y+9
+ 837 0484 BA85      		ldd r27,Y+10
+ 838 0486 1196      		adiw r26,1
+ 839 0488 5C90      		ld r5,X
+ 840 048a 1197      		sbiw r26,1
+ 841 048c 5525      		eor r21,r5
+ 842 048e 1196      		adiw r26,1
+ 843 0490 5C93      		st X,r21
+ 844 0492 D401      		movw r26,r8
+ 845 0494 1196      		adiw r26,1
+ 846 0496 9C90      		ld r9,X
+ 847 0498 D501      		movw r26,r10
+ 848 049a 1196      		adiw r26,1
+ 849 049c BC90      		ld r11,X
+ 850 049e 1197      		sbiw r26,1
+ 851 04a0 9B24      		eor r9,r11
+ 852 04a2 1196      		adiw r26,1
+ 853 04a4 9C92      		st X,r9
+ 854 04a6 F380      		ldd r15,Z+3
+ 855 04a8 A985      		ldd r26,Y+9
+ 856 04aa BA85      		ldd r27,Y+10
+ 857 04ac 1396      		adiw r26,3
+ 858 04ae 9C91      		ld r25,X
+ 859 04b0 1397      		sbiw r26,3
+ 860 04b2 F926      		eor r15,r25
+ 861 04b4 1396      		adiw r26,3
+ 862 04b6 FC92      		st X,r15
+ 863 04b8 1397      		sbiw r26,3
+ 864 04ba 4481      		ldd r20,Z+4
+ 865 04bc 1496      		adiw r26,4
+ 866 04be 2C91      		ld r18,X
+ 867 04c0 1497      		sbiw r26,4
+ 868 04c2 4227      		eor r20,r18
+ 869 04c4 1496      		adiw r26,4
+ 870 04c6 4C93      		st X,r20
+ 871 04c8 1497      		sbiw r26,4
+ 872 04ca 1581      		ldd r17,Z+5
+ 873 04cc 1596      		adiw r26,5
+ 874 04ce 2C90      		ld r2,X
+ 875 04d0 1597      		sbiw r26,5
+ 876 04d2 1225      		eor r17,r2
+ 877 04d4 1596      		adiw r26,5
+ 878 04d6 1C93      		st X,r17
+ 879 04d8 1597      		sbiw r26,5
+ 880 04da C680      		ldd r12,Z+6
+ 881 04dc 1696      		adiw r26,6
+ 882 04de 4C90      		ld r4,X
+ 883 04e0 1697      		sbiw r26,6
+ 884 04e2 C424      		eor r12,r4
+ 885 04e4 1696      		adiw r26,6
+ 886 04e6 CC92      		st X,r12
+ 887 04e8 1697      		sbiw r26,6
+ 888 04ea 7781      		ldd r23,Z+7
+ 889 04ec 3896      		adiw r30,8
+ 890 04ee 1796      		adiw r26,7
+ 891 04f0 6C91      		ld r22,X
+ 892 04f2 1797      		sbiw r26,7
+ 893 04f4 7627      		eor r23,r22
+ 894 04f6 1796      		adiw r26,7
+ 895 04f8 7C93      		st X,r23
+ 896 04fa 1797      		sbiw r26,7
+ 897 04fc 1896      		adiw r26,8
+ 898 04fe BA87      		std Y+10,r27
+ 899 0500 A987      		std Y+9,r26
+ 900 0502 885F      		subi r24,lo8(-(8))
+ 901 0504 3812      		cpse r3,r24
+ 902 0506 00C0      		rjmp .L25
+ 903               	.LVL50:
+ 904               	.L26:
+ 905               	.LBE15:
+ 906               	.LBE14:
+ 907               	.LBB17:
+ 908               	.LBB18:
+  26:../lib/ubi.h  **** 		message = tparam->text;
+ 909               		.loc 2 26 0
+ 910 0508 F0E2      		ldi r31,lo8(32)
+ 911 050a D301      		movw r26,r6
+ 912               		0:
+ 913 050c 1D92      		st X+,__zero_reg__
+ 914 050e FA95      		dec r31
+ 915 0510 01F4      		brne 0b
+ 916               	.LVL51:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 917               		.loc 2 29 0
+ 918 0512 3884      		ldd r3,Y+8
+ 919 0514 3F92      		push r3
+ 920 0516 BF81      		ldd r27,Y+7
+ 921 0518 BF93      		push r27
+ 922 051a 7F92      		push r7
+ 923 051c 6F92      		push r6
+ 924 051e 88E0      		ldi r24,lo8(8)
+ 925 0520 882E      		mov r8,r24
+ 926 0522 912C      		mov r9,__zero_reg__
+ 927 0524 A12C      		mov r10,__zero_reg__
+ 928 0526 B12C      		mov r11,__zero_reg__
+ 929 0528 C12C      		mov r12,__zero_reg__
+ 930 052a D12C      		mov r13,__zero_reg__
+ 931 052c E12C      		mov r14,__zero_reg__
+ 932 052e F12C      		mov r15,__zero_reg__
+ 933 0530 00E0      		ldi r16,0
+ 934 0532 10E0      		ldi r17,0
+ 935 0534 20E0      		ldi r18,0
+ 936 0536 30E0      		ldi r19,0
+ 937 0538 40E0      		ldi r20,0
+ 938 053a 50E0      		ldi r21,0
+ 939 053c 60E0      		ldi r22,0
+ 940 053e 7FEF      		ldi r23,lo8(-1)
+ 941 0540 8B81      		ldd r24,Y+3
+ 942 0542 9C81      		ldd r25,Y+4
+ 943 0544 0E94 0000 		call threefish_256_enc
+ 944               	.LVL52:
+ 945               	.LBE18:
+ 946               	.LBE17:
+  66:../lib/skein.c **** 	DEBUG_64(tparam->key, 4);
+  67:../lib/skein.c **** 
+  68:../lib/skein.c **** 	ubi_iterate(tparam, NULL, 0, (SKEIN_SINGLE | Tout) << 8, 8, out);
+  69:../lib/skein.c **** 	DEBUG_64(out, 4);
+  70:../lib/skein.c **** }
+ 947               		.loc 1 70 0
+ 948 0548 0F90      		pop __tmp_reg__
+ 949 054a 0F90      		pop __tmp_reg__
+ 950 054c 0F90      		pop __tmp_reg__
+ 951 054e 0F90      		pop __tmp_reg__
+ 952               	/* epilogue start */
+ 953 0550 2A96      		adiw r28,10
+ 954 0552 0FB6      		in __tmp_reg__,__SREG__
+ 955 0554 F894      		cli
+ 956 0556 DEBF      		out __SP_H__,r29
+ 957 0558 0FBE      		out __SREG__,__tmp_reg__
+ 958 055a CDBF      		out __SP_L__,r28
+ 959 055c DF91      		pop r29
+ 960 055e CF91      		pop r28
+ 961 0560 1F91      		pop r17
+ 962 0562 0F91      		pop r16
+ 963 0564 FF90      		pop r15
+ 964 0566 EF90      		pop r14
+ 965 0568 DF90      		pop r13
+ 966 056a CF90      		pop r12
+ 967 056c BF90      		pop r11
+ 968 056e AF90      		pop r10
+ 969 0570 9F90      		pop r9
+ 970 0572 8F90      		pop r8
+ 971 0574 7F90      		pop r7
+ 972 0576 6F90      		pop r6
+ 973 0578 5F90      		pop r5
+ 974 057a 4F90      		pop r4
+ 975 057c 3F90      		pop r3
+ 976 057e 2F90      		pop r2
+ 977 0580 0895      		ret
+ 978               	.LVL53:
+ 979               	.L23:
+ 980 0582 0981      		ldd r16,Y+1
+ 981 0584 1A81      		ldd r17,Y+2
+ 982 0586 1127      		clr r17
+ 983               	.LBB19:
+ 984               	.LBB16:
+  25:../lib/ubi.h  **** 		memset(tparam->text+message_len, 0, 32-message_len);
+ 985               		.loc 2 25 0
+ 986 0588 A801      		movw r20,r16
+ 987 058a 6D81      		ldd r22,Y+5
+ 988 058c 7E81      		ldd r23,Y+6
+ 989 058e C301      		movw r24,r6
+ 990 0590 0E94 0000 		call memcpy
+ 991               	.LVL54:
+  26:../lib/ubi.h  **** 		message = tparam->text;
+ 992               		.loc 2 26 0
+ 993 0594 40E2      		ldi r20,lo8(32)
+ 994 0596 50E0      		ldi r21,0
+ 995 0598 401B      		sub r20,r16
+ 996 059a 510B      		sbc r21,r17
+ 997 059c 60E0      		ldi r22,0
+ 998 059e 70E0      		ldi r23,0
+ 999 05a0 C301      		movw r24,r6
+ 1000 05a2 800F      		add r24,r16
+ 1001 05a4 911F      		adc r25,r17
+ 1002 05a6 0E94 0000 		call memset
+ 1003               	.LVL55:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 1004               		.loc 2 29 0
+ 1005 05aa 5701      		movw r10,r14
+ 1006 05ac CC24      		clr r12
+ 1007 05ae DD24      		clr r13
+ 1008 05b0 3A85      		ldd r19,Y+10
+ 1009 05b2 3F93      		push r19
+ 1010 05b4 D984      		ldd r13,Y+9
+ 1011 05b6 DF92      		push r13
+ 1012 05b8 7F92      		push r7
+ 1013 05ba 6F92      		push r6
+ 1014 05bc C12C      		mov r12,__zero_reg__
+ 1015 05be D12C      		mov r13,__zero_reg__
+ 1016               	.LVL56:
+ 1017 05c0 E12C      		mov r14,__zero_reg__
+ 1018 05c2 F12C      		mov r15,__zero_reg__
+ 1019 05c4 00E0      		ldi r16,0
+ 1020 05c6 10E0      		ldi r17,0
+ 1021 05c8 20E0      		ldi r18,0
+ 1022 05ca 30E0      		ldi r19,0
+ 1023 05cc 40E0      		ldi r20,0
+ 1024 05ce 50E0      		ldi r21,0
+ 1025 05d0 B201      		movw r22,r4
+ 1026 05d2 8B81      		ldd r24,Y+3
+ 1027 05d4 9C81      		ldd r25,Y+4
+ 1028 05d6 0E94 0000 		call threefish_256_enc
+ 1029               	.LVL57:
+ 1030               		.loc 2 30 0
+ 1031 05da 0F90      		pop __tmp_reg__
+ 1032 05dc 0F90      		pop __tmp_reg__
+ 1033 05de 0F90      		pop __tmp_reg__
+ 1034 05e0 0F90      		pop __tmp_reg__
+ 1035 05e2 3110      		cpse r3,__zero_reg__
+ 1036 05e4 00C0      		rjmp .L24
+ 1037 05e6 00C0      		rjmp .L26
+ 1038               	.LVL58:
+ 1039               	.L109:
+ 1040 05e8 AB81      		ldd r26,Y+3
+ 1041 05ea BC81      		ldd r27,Y+4
+ 1042 05ec 1896      		adiw r26,8
+ 1043 05ee BA87      		std Y+10,r27
+ 1044 05f0 A987      		std Y+9,r26
+ 1045               	.LBE16:
+ 1046               	.LBE19:
+  55:../lib/skein.c **** 		position_offset += 32;
+ 1047               		.loc 1 55 0
+ 1048 05f2 412C      		mov r4,__zero_reg__
+ 1049 05f4 70EF      		ldi r23,lo8(-16)
+ 1050 05f6 572E      		mov r5,r23
+  51:../lib/skein.c **** 	memcpy(tparam->key, skein_iv, 32);
+ 1051               		.loc 1 51 0
+ 1052 05f8 A0E0      		ldi r26,0
+ 1053 05fa B0E0      		ldi r27,0
+ 1054 05fc EB81      		ldd r30,Y+3
+ 1055 05fe FC81      		ldd r31,Y+4
+ 1056 0600 B896      		adiw r30,40
+ 1057 0602 3F01      		movw r6,r30
+ 1058 0604 4901      		movw r8,r18
+ 1059 0606 00C0      		rjmp .L20
+ 1060               		.cfi_endproc
+ 1061               	.LFE4:
+ 1063               	.global	skein_256_256_start
+ 1065               	skein_256_256_start:
+ 1066               	.LFB5:
+  71:../lib/skein.c **** 
+  72:../lib/skein.c **** void skein_256_256_start(threefish_param_t *tparam)
+  73:../lib/skein.c **** {
+ 1067               		.loc 1 73 0
+ 1068               		.cfi_startproc
+ 1069               	.LVL59:
+ 1070               	/* prologue: function */
+ 1071               	/* frame size = 0 */
+ 1072               	/* stack size = 0 */
+ 1073               	.L__stack_usage = 0
+ 1074 0608 DC01      		movw r26,r24
+ 1075               	.LVL60:
+  74:../lib/skein.c **** 	unsigned long *offset = (unsigned long *)tparam->stack;
+  75:../lib/skein.c **** 	*offset = 0;
+ 1076               		.loc 1 75 0
+ 1077 060a 1D92      		st X+,__zero_reg__
+ 1078 060c 1D92      		st X+,__zero_reg__
+ 1079 060e 1D92      		st X+,__zero_reg__
+ 1080 0610 1C92      		st X,__zero_reg__
+ 1081 0612 1397      		sbiw r26,3
+  76:../lib/skein.c **** 	tparam->stack[4] = SKEIN_FIRST;
+ 1082               		.loc 1 76 0
+ 1083 0614 80E4      		ldi r24,lo8(64)
+ 1084               	.LVL61:
+ 1085 0616 1496      		adiw r26,4
+ 1086 0618 8C93      		st X,r24
+ 1087 061a 1497      		sbiw r26,4
+  77:../lib/skein.c **** 	memcpy(tparam->key, skein_iv, 32);
+ 1088               		.loc 1 77 0
+ 1089 061c E0E0      		ldi r30,lo8(skein_iv)
+ 1090 061e F0E0      		ldi r31,hi8(skein_iv)
+ 1091 0620 1896      		adiw r26,8
+ 1092               	.LVL62:
+ 1093 0622 20E2      		ldi r18,lo8(32)
+ 1094               		0:
+ 1095 0624 0190      		ld r0,Z+
+ 1096 0626 0D92      		st X+,r0
+ 1097 0628 2A95      		dec r18
+ 1098 062a 01F4      		brne 0b
+ 1099               	.LVL63:
+ 1100 062c 0895      		ret
+ 1101               		.cfi_endproc
+ 1102               	.LFE5:
+ 1104               	.global	skein_256_256_add
+ 1106               	skein_256_256_add:
+ 1107               	.LFB6:
+  78:../lib/skein.c **** 	DEBUG_64(tparam->key, 4);
+  79:../lib/skein.c **** }
+  80:../lib/skein.c **** 
+  81:../lib/skein.c **** void skein_256_256_add(threefish_param_t *tparam, const char *message)
+  82:../lib/skein.c **** {
+ 1108               		.loc 1 82 0
+ 1109               		.cfi_startproc
+ 1110               	.LVL64:
+ 1111 062e 4F92      		push r4
+ 1112               	.LCFI39:
+ 1113               		.cfi_def_cfa_offset 3
+ 1114               		.cfi_offset 4, -2
+ 1115 0630 5F92      		push r5
+ 1116               	.LCFI40:
+ 1117               		.cfi_def_cfa_offset 4
+ 1118               		.cfi_offset 5, -3
+ 1119 0632 6F92      		push r6
+ 1120               	.LCFI41:
+ 1121               		.cfi_def_cfa_offset 5
+ 1122               		.cfi_offset 6, -4
+ 1123 0634 7F92      		push r7
+ 1124               	.LCFI42:
+ 1125               		.cfi_def_cfa_offset 6
+ 1126               		.cfi_offset 7, -5
+ 1127 0636 8F92      		push r8
+ 1128               	.LCFI43:
+ 1129               		.cfi_def_cfa_offset 7
+ 1130               		.cfi_offset 8, -6
+ 1131 0638 9F92      		push r9
+ 1132               	.LCFI44:
+ 1133               		.cfi_def_cfa_offset 8
+ 1134               		.cfi_offset 9, -7
+ 1135 063a AF92      		push r10
+ 1136               	.LCFI45:
+ 1137               		.cfi_def_cfa_offset 9
+ 1138               		.cfi_offset 10, -8
+ 1139 063c BF92      		push r11
+ 1140               	.LCFI46:
+ 1141               		.cfi_def_cfa_offset 10
+ 1142               		.cfi_offset 11, -9
+ 1143 063e CF92      		push r12
+ 1144               	.LCFI47:
+ 1145               		.cfi_def_cfa_offset 11
+ 1146               		.cfi_offset 12, -10
+ 1147 0640 DF92      		push r13
+ 1148               	.LCFI48:
+ 1149               		.cfi_def_cfa_offset 12
+ 1150               		.cfi_offset 13, -11
+ 1151 0642 EF92      		push r14
+ 1152               	.LCFI49:
+ 1153               		.cfi_def_cfa_offset 13
+ 1154               		.cfi_offset 14, -12
+ 1155 0644 FF92      		push r15
+ 1156               	.LCFI50:
+ 1157               		.cfi_def_cfa_offset 14
+ 1158               		.cfi_offset 15, -13
+ 1159 0646 0F93      		push r16
+ 1160               	.LCFI51:
+ 1161               		.cfi_def_cfa_offset 15
+ 1162               		.cfi_offset 16, -14
+ 1163 0648 1F93      		push r17
+ 1164               	.LCFI52:
+ 1165               		.cfi_def_cfa_offset 16
+ 1166               		.cfi_offset 17, -15
+ 1167 064a CF93      		push r28
+ 1168               	.LCFI53:
+ 1169               		.cfi_def_cfa_offset 17
+ 1170               		.cfi_offset 28, -16
+ 1171 064c DF93      		push r29
+ 1172               	.LCFI54:
+ 1173               		.cfi_def_cfa_offset 18
+ 1174               		.cfi_offset 29, -17
+ 1175               	/* prologue: function */
+ 1176               	/* frame size = 0 */
+ 1177               	/* stack size = 16 */
+ 1178               	.L__stack_usage = 16
+ 1179 064e 3C01      		movw r6,r24
+ 1180 0650 2B01      		movw r4,r22
+ 1181               	.LVL65:
+  83:../lib/skein.c **** 	unsigned long *offset = (unsigned long *)tparam->stack;
+  84:../lib/skein.c **** 	char flags = tparam->stack[4];
+ 1182               		.loc 1 84 0
+ 1183 0652 EC01      		movw r28,r24
+ 1184 0654 7C81      		ldd r23,Y+4
+ 1185               	.LVL66:
+  85:../lib/skein.c **** 
+  86:../lib/skein.c **** 	ubi_iterate(tparam, message, 32, (flags | Tmsg) << 8, (*offset)+=32, tparam->key);
+ 1186               		.loc 1 86 0
+ 1187 0656 2896      		adiw r28,8
+ 1188 0658 FC01      		movw r30,r24
+ 1189 065a 8080      		ld r8,Z
+ 1190 065c 9180      		ldd r9,Z+1
+ 1191 065e A280      		ldd r10,Z+2
+ 1192 0660 B380      		ldd r11,Z+3
+ 1193 0662 F0E2      		ldi r31,32
+ 1194 0664 8F0E      		add r8,r31
+ 1195 0666 911C      		adc r9,__zero_reg__
+ 1196 0668 A11C      		adc r10,__zero_reg__
+ 1197 066a B11C      		adc r11,__zero_reg__
+ 1198 066c FC01      		movw r30,r24
+ 1199 066e 8082      		st Z,r8
+ 1200 0670 9182      		std Z+1,r9
+ 1201 0672 A282      		std Z+2,r10
+ 1202 0674 B382      		std Z+3,r11
+ 1203               	.LVL67:
+ 1204               	.LBB22:
+ 1205               	.LBB23:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 1206               		.loc 2 29 0
+ 1207 0676 C501      		movw r24,r10
+ 1208 0678 AA27      		clr r26
+ 1209 067a BB27      		clr r27
+ 1210               	.LVL68:
+ 1211 067c 7063      		ori r23,lo8(48)
+ 1212               	.LVL69:
+ 1213 067e DF93      		push r29
+ 1214               	.LCFI55:
+ 1215               		.cfi_def_cfa_offset 19
+ 1216               	.LVL70:
+ 1217 0680 CF93      		push r28
+ 1218               	.LCFI56:
+ 1219               		.cfi_def_cfa_offset 20
+ 1220 0682 5F92      		push r5
+ 1221               	.LCFI57:
+ 1222               		.cfi_def_cfa_offset 21
+ 1223 0684 4F92      		push r4
+ 1224               	.LCFI58:
+ 1225               		.cfi_def_cfa_offset 22
+ 1226 0686 5C01      		movw r10,r24
+ 1227 0688 C12C      		mov r12,__zero_reg__
+ 1228 068a D12C      		mov r13,__zero_reg__
+ 1229 068c E12C      		mov r14,__zero_reg__
+ 1230 068e F12C      		mov r15,__zero_reg__
+ 1231 0690 00E0      		ldi r16,0
+ 1232 0692 10E0      		ldi r17,0
+ 1233 0694 20E0      		ldi r18,0
+ 1234 0696 30E0      		ldi r19,0
+ 1235 0698 40E0      		ldi r20,0
+ 1236 069a 50E0      		ldi r21,0
+ 1237 069c 60E0      		ldi r22,0
+ 1238               	.LVL71:
+ 1239 069e C301      		movw r24,r6
+ 1240 06a0 0E94 0000 		call threefish_256_enc
+ 1241               	.LVL72:
+ 1242 06a4 D201      		movw r26,r4
+ 1243 06a6 FE01      		movw r30,r28
+ 1244 06a8 8301      		movw r16,r6
+ 1245 06aa 085D      		subi r16,-40
+ 1246 06ac 1F4F      		sbci r17,-1
+ 1247 06ae 0F90      		pop __tmp_reg__
+ 1248 06b0 0F90      		pop __tmp_reg__
+ 1249 06b2 0F90      		pop __tmp_reg__
+ 1250 06b4 0F90      		pop __tmp_reg__
+ 1251               	.LCFI59:
+ 1252               		.cfi_def_cfa_offset 18
+ 1253               	.LVL73:
+ 1254               	.L112:
+ 1255               		.loc 2 30 0
+ 1256 06b6 ED01      		movw r28,r26
+ 1257 06b8 4991      		ld r20,Y+
+ 1258 06ba 2E01      		movw r4,r28
+ 1259 06bc 5081      		ld r21,Z
+ 1260 06be 4527      		eor r20,r21
+ 1261 06c0 EF01      		movw r28,r30
+ 1262 06c2 4993      		st Y+,r20
+ 1263 06c4 4E01      		movw r8,r28
+ 1264 06c6 1196      		adiw r26,1
+ 1265 06c8 AC90      		ld r10,X
+ 1266 06ca 1197      		sbiw r26,1
+ 1267 06cc B180      		ldd r11,Z+1
+ 1268 06ce AB24      		eor r10,r11
+ 1269 06d0 A182      		std Z+1,r10
+ 1270 06d2 E201      		movw r28,r4
+ 1271 06d4 5980      		ldd r5,Y+1
+ 1272 06d6 E401      		movw r28,r8
+ 1273 06d8 9981      		ldd r25,Y+1
+ 1274 06da 5926      		eor r5,r25
+ 1275 06dc 5982      		std Y+1,r5
+ 1276 06de 1396      		adiw r26,3
+ 1277 06e0 9C90      		ld r9,X
+ 1278 06e2 1397      		sbiw r26,3
+ 1279 06e4 C380      		ldd r12,Z+3
+ 1280 06e6 9C24      		eor r9,r12
+ 1281 06e8 9382      		std Z+3,r9
+ 1282 06ea 1496      		adiw r26,4
+ 1283 06ec DC90      		ld r13,X
+ 1284 06ee 1497      		sbiw r26,4
+ 1285 06f0 E480      		ldd r14,Z+4
+ 1286 06f2 DE24      		eor r13,r14
+ 1287 06f4 D482      		std Z+4,r13
+ 1288 06f6 1596      		adiw r26,5
+ 1289 06f8 FC90      		ld r15,X
+ 1290 06fa 1597      		sbiw r26,5
+ 1291 06fc 3581      		ldd r19,Z+5
+ 1292 06fe F326      		eor r15,r19
+ 1293 0700 F582      		std Z+5,r15
+ 1294 0702 1696      		adiw r26,6
+ 1295 0704 7C91      		ld r23,X
+ 1296 0706 1697      		sbiw r26,6
+ 1297 0708 D681      		ldd r29,Z+6
+ 1298 070a 7D27      		eor r23,r29
+ 1299 070c 7683      		std Z+6,r23
+ 1300 070e 1796      		adiw r26,7
+ 1301 0710 2C91      		ld r18,X
+ 1302 0712 1797      		sbiw r26,7
+ 1303               	.LVL74:
+ 1304 0714 1896      		adiw r26,8
+ 1305 0716 8781      		ldd r24,Z+7
+ 1306 0718 2827      		eor r18,r24
+ 1307 071a 2783      		std Z+7,r18
+ 1308 071c 3896      		adiw r30,8
+ 1309 071e E017      		cp r30,r16
+ 1310 0720 F107      		cpc r31,r17
+ 1311 0722 01F4      		brne .L112
+ 1312               	.LVL75:
+ 1313               	.LBE23:
+ 1314               	.LBE22:
+  87:../lib/skein.c **** 	tparam->stack[4] = 0;
+ 1315               		.loc 1 87 0
+ 1316 0724 F301      		movw r30,r6
+ 1317 0726 1482      		std Z+4,__zero_reg__
+ 1318               	/* epilogue start */
+  88:../lib/skein.c **** 	DEBUG_64(tparam->key, 4);
+  89:../lib/skein.c **** }
+ 1319               		.loc 1 89 0
+ 1320 0728 DF91      		pop r29
+ 1321 072a CF91      		pop r28
+ 1322 072c 1F91      		pop r17
+ 1323 072e 0F91      		pop r16
+ 1324 0730 FF90      		pop r15
+ 1325 0732 EF90      		pop r14
+ 1326 0734 DF90      		pop r13
+ 1327 0736 CF90      		pop r12
+ 1328 0738 BF90      		pop r11
+ 1329 073a AF90      		pop r10
+ 1330 073c 9F90      		pop r9
+ 1331 073e 8F90      		pop r8
+ 1332 0740 7F90      		pop r7
+ 1333 0742 6F90      		pop r6
+ 1334               	.LVL76:
+ 1335 0744 5F90      		pop r5
+ 1336 0746 4F90      		pop r4
+ 1337               	.LVL77:
+ 1338 0748 0895      		ret
+ 1339               		.cfi_endproc
+ 1340               	.LFE6:
+ 1342               	.global	skein_256_256_finish
+ 1344               	skein_256_256_finish:
+ 1345               	.LFB7:
+  90:../lib/skein.c **** 
+  91:../lib/skein.c **** void skein_256_256_finish(threefish_param_t *tparam, const char *message, char message_len, char *o
+  92:../lib/skein.c **** {
+ 1346               		.loc 1 92 0
+ 1347               		.cfi_startproc
+ 1348               	.LVL78:
+ 1349 074a 2F92      		push r2
+ 1350               	.LCFI60:
+ 1351               		.cfi_def_cfa_offset 3
+ 1352               		.cfi_offset 2, -2
+ 1353 074c 3F92      		push r3
+ 1354               	.LCFI61:
+ 1355               		.cfi_def_cfa_offset 4
+ 1356               		.cfi_offset 3, -3
+ 1357 074e 4F92      		push r4
+ 1358               	.LCFI62:
+ 1359               		.cfi_def_cfa_offset 5
+ 1360               		.cfi_offset 4, -4
+ 1361 0750 5F92      		push r5
+ 1362               	.LCFI63:
+ 1363               		.cfi_def_cfa_offset 6
+ 1364               		.cfi_offset 5, -5
+ 1365 0752 6F92      		push r6
+ 1366               	.LCFI64:
+ 1367               		.cfi_def_cfa_offset 7
+ 1368               		.cfi_offset 6, -6
+ 1369 0754 7F92      		push r7
+ 1370               	.LCFI65:
+ 1371               		.cfi_def_cfa_offset 8
+ 1372               		.cfi_offset 7, -7
+ 1373 0756 8F92      		push r8
+ 1374               	.LCFI66:
+ 1375               		.cfi_def_cfa_offset 9
+ 1376               		.cfi_offset 8, -8
+ 1377 0758 9F92      		push r9
+ 1378               	.LCFI67:
+ 1379               		.cfi_def_cfa_offset 10
+ 1380               		.cfi_offset 9, -9
+ 1381 075a AF92      		push r10
+ 1382               	.LCFI68:
+ 1383               		.cfi_def_cfa_offset 11
+ 1384               		.cfi_offset 10, -10
+ 1385 075c BF92      		push r11
+ 1386               	.LCFI69:
+ 1387               		.cfi_def_cfa_offset 12
+ 1388               		.cfi_offset 11, -11
+ 1389 075e CF92      		push r12
+ 1390               	.LCFI70:
+ 1391               		.cfi_def_cfa_offset 13
+ 1392               		.cfi_offset 12, -12
+ 1393 0760 DF92      		push r13
+ 1394               	.LCFI71:
+ 1395               		.cfi_def_cfa_offset 14
+ 1396               		.cfi_offset 13, -13
+ 1397 0762 EF92      		push r14
+ 1398               	.LCFI72:
+ 1399               		.cfi_def_cfa_offset 15
+ 1400               		.cfi_offset 14, -14
+ 1401 0764 FF92      		push r15
+ 1402               	.LCFI73:
+ 1403               		.cfi_def_cfa_offset 16
+ 1404               		.cfi_offset 15, -15
+ 1405 0766 0F93      		push r16
+ 1406               	.LCFI74:
+ 1407               		.cfi_def_cfa_offset 17
+ 1408               		.cfi_offset 16, -16
+ 1409 0768 1F93      		push r17
+ 1410               	.LCFI75:
+ 1411               		.cfi_def_cfa_offset 18
+ 1412               		.cfi_offset 17, -17
+ 1413 076a CF93      		push r28
+ 1414               	.LCFI76:
+ 1415               		.cfi_def_cfa_offset 19
+ 1416               		.cfi_offset 28, -18
+ 1417 076c DF93      		push r29
+ 1418               	.LCFI77:
+ 1419               		.cfi_def_cfa_offset 20
+ 1420               		.cfi_offset 29, -19
+ 1421 076e 00D0      		rcall .
+ 1422 0770 00D0      		rcall .
+ 1423 0772 00D0      		rcall .
+ 1424               	.LCFI78:
+ 1425               		.cfi_def_cfa_offset 26
+ 1426 0774 CDB7      		in r28,__SP_L__
+ 1427 0776 DEB7      		in r29,__SP_H__
+ 1428               	.LCFI79:
+ 1429               		.cfi_def_cfa_register 28
+ 1430               	/* prologue: function */
+ 1431               	/* frame size = 6 */
+ 1432               	/* stack size = 24 */
+ 1433               	.L__stack_usage = 24
+ 1434 0778 3C01      		movw r6,r24
+ 1435 077a 262E      		mov r2,r22
+ 1436 077c 7983      		std Y+1,r23
+ 1437 077e 342E      		mov r3,r20
+ 1438 0780 2A83      		std Y+2,r18
+ 1439 0782 3B83      		std Y+3,r19
+ 1440               	.LVL79:
+  93:../lib/skein.c **** 	unsigned long *offset = (unsigned long *)tparam->stack;
+  94:../lib/skein.c **** 	char flags = tparam->stack[4] | SKEIN_LAST;
+ 1441               		.loc 1 94 0
+ 1442 0784 DC01      		movw r26,r24
+ 1443 0786 1496      		adiw r26,4
+ 1444 0788 8C91      		ld r24,X
+ 1445 078a 1497      		sbiw r26,4
+ 1446               	.LVL80:
+  95:../lib/skein.c **** 
+  96:../lib/skein.c **** 	ubi_iterate(tparam, message, message_len, (flags | Tmsg) << 8, (*offset)+=message_len, tparam->key
+ 1447               		.loc 1 96 0
+ 1448 078c F301      		movw r30,r6
+ 1449 078e 3896      		adiw r30,8
+ 1450 0790 FE83      		std Y+6,r31
+ 1451 0792 ED83      		std Y+5,r30
+ 1452 0794 8D90      		ld r8,X+
+ 1453 0796 9D90      		ld r9,X+
+ 1454 0798 AD90      		ld r10,X+
+ 1455 079a BC90      		ld r11,X
+ 1456 079c 840E      		add r8,r20
+ 1457 079e 911C      		adc r9,__zero_reg__
+ 1458 07a0 A11C      		adc r10,__zero_reg__
+ 1459 07a2 B11C      		adc r11,__zero_reg__
+ 1460 07a4 F301      		movw r30,r6
+ 1461 07a6 8082      		st Z,r8
+ 1462 07a8 9182      		std Z+1,r9
+ 1463 07aa A282      		std Z+2,r10
+ 1464 07ac B382      		std Z+3,r11
+ 1465 07ae 806B      		ori r24,lo8(-80)
+ 1466               	.LVL81:
+ 1467 07b0 8C83      		std Y+4,r24
+ 1468               	.LVL82:
+ 1469               	.LBB28:
+ 1470               	.LBB29:
+  24:../lib/ubi.h  **** 		memcpy(tparam->text, message, message_len);
+ 1471               		.loc 2 24 0
+ 1472 07b2 FFE1      		ldi r31,lo8(31)
+ 1473 07b4 F417      		cp r31,r20
+ 1474 07b6 00F0      		brlo .+2
+ 1475 07b8 00C0      		rjmp .L122
+ 1476 07ba 2301      		movw r4,r6
+ 1477 07bc 28E2      		ldi r18,40
+ 1478 07be 420E      		add r4,r18
+ 1479 07c0 511C      		adc r5,__zero_reg__
+ 1480               	.LVL83:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 1481               		.loc 2 29 0
+ 1482 07c2 C501      		movw r24,r10
+ 1483 07c4 AA27      		clr r26
+ 1484 07c6 BB27      		clr r27
+ 1485               	.LVL84:
+ 1486 07c8 3E81      		ldd r19,Y+6
+ 1487 07ca 3F93      		push r19
+ 1488               	.LVL85:
+ 1489 07cc 4D81      		ldd r20,Y+5
+ 1490               	.LVL86:
+ 1491 07ce 4F93      		push r20
+ 1492 07d0 7F93      		push r23
+ 1493 07d2 6F93      		push r22
+ 1494 07d4 5C01      		movw r10,r24
+ 1495 07d6 C12C      		mov r12,__zero_reg__
+ 1496 07d8 D12C      		mov r13,__zero_reg__
+ 1497 07da E12C      		mov r14,__zero_reg__
+ 1498 07dc F12C      		mov r15,__zero_reg__
+ 1499 07de 00E0      		ldi r16,0
+ 1500 07e0 10E0      		ldi r17,0
+ 1501 07e2 20E0      		ldi r18,0
+ 1502 07e4 30E0      		ldi r19,0
+ 1503 07e6 40E0      		ldi r20,0
+ 1504 07e8 50E0      		ldi r21,0
+ 1505 07ea 60E0      		ldi r22,0
+ 1506               	.LVL87:
+ 1507 07ec 7C81      		ldd r23,Y+4
+ 1508               	.LVL88:
+ 1509 07ee C301      		movw r24,r6
+ 1510 07f0 0E94 0000 		call threefish_256_enc
+ 1511               	.LVL89:
+ 1512 07f4 0F90      		pop __tmp_reg__
+ 1513 07f6 0F90      		pop __tmp_reg__
+ 1514 07f8 0F90      		pop __tmp_reg__
+ 1515 07fa 0F90      		pop __tmp_reg__
+ 1516               	.LVL90:
+ 1517               	.L123:
+ 1518 07fc 9980      		ldd r9,Y+1
+ 1519 07fe 3A94      		dec r3
+ 1520               	.LVL91:
+ 1521 0800 832D      		mov r24,r3
+ 1522 0802 90E0      		ldi r25,0
+ 1523 0804 0196      		adiw r24,1
+ 1524 0806 2D81      		ldd r18,Y+5
+ 1525 0808 3E81      		ldd r19,Y+6
+ 1526 080a 820F      		add r24,r18
+ 1527 080c 931F      		adc r25,r19
+ 1528 080e 2095      		com r18
+ 1529 0810 3095      		com r19
+ 1530 0812 280F      		add r18,r24
+ 1531 0814 391F      		adc r19,r25
+ 1532 0816 2770      		andi r18,7
+ 1533 0818 3327      		clr r19
+ 1534               	.LVL92:
+ 1535               		.loc 2 30 0
+ 1536 081a E22D      		mov r30,r2
+ 1537 081c F92D      		mov r31,r9
+ 1538 081e C190      		ld r12,Z+
+ 1539 0820 AD81      		ldd r26,Y+5
+ 1540 0822 BE81      		ldd r27,Y+6
+ 1541 0824 DC90      		ld r13,X
+ 1542 0826 CD24      		eor r12,r13
+ 1543 0828 CD92      		st X+,r12
+ 1544 082a BE83      		std Y+6,r27
+ 1545 082c AD83      		std Y+5,r26
+ 1546               	.LVL93:
+ 1547 082e A817      		cp r26,r24
+ 1548 0830 B907      		cpc r27,r25
+ 1549 0832 01F4      		brne .+2
+ 1550 0834 00C0      		rjmp .L125
+ 1551 0836 2115      		cp r18,__zero_reg__
+ 1552 0838 3105      		cpc r19,__zero_reg__
+ 1553 083a 01F4      		brne .+2
+ 1554 083c 00C0      		rjmp .L124
+ 1555 083e 2130      		cpi r18,1
+ 1556 0840 3105      		cpc r19,__zero_reg__
+ 1557 0842 01F0      		breq .L151
+ 1558 0844 2230      		cpi r18,2
+ 1559 0846 3105      		cpc r19,__zero_reg__
+ 1560 0848 01F0      		breq .L152
+ 1561 084a 2330      		cpi r18,3
+ 1562 084c 3105      		cpc r19,__zero_reg__
+ 1563 084e 01F0      		breq .L153
+ 1564 0850 2430      		cpi r18,4
+ 1565 0852 3105      		cpc r19,__zero_reg__
+ 1566 0854 01F0      		breq .L154
+ 1567 0856 2530      		cpi r18,5
+ 1568 0858 3105      		cpc r19,__zero_reg__
+ 1569 085a 01F0      		breq .L155
+ 1570 085c 2630      		cpi r18,6
+ 1571 085e 3105      		cpc r19,__zero_reg__
+ 1572 0860 01F0      		breq .L156
+ 1573 0862 E190      		ld r14,Z+
+ 1574 0864 FC90      		ld r15,X
+ 1575 0866 EF24      		eor r14,r15
+ 1576 0868 ED92      		st X+,r14
+ 1577 086a BE83      		std Y+6,r27
+ 1578 086c AD83      		std Y+5,r26
+ 1579               	.L156:
+ 1580 086e 0191      		ld r16,Z+
+ 1581 0870 1C91      		ld r17,X
+ 1582 0872 0127      		eor r16,r17
+ 1583 0874 0D93      		st X+,r16
+ 1584 0876 BE83      		std Y+6,r27
+ 1585 0878 AD83      		std Y+5,r26
+ 1586               	.L155:
+ 1587 087a 6191      		ld r22,Z+
+ 1588 087c 7C91      		ld r23,X
+ 1589 087e 6727      		eor r22,r23
+ 1590 0880 6D93      		st X+,r22
+ 1591 0882 BE83      		std Y+6,r27
+ 1592 0884 AD83      		std Y+5,r26
+ 1593               	.L154:
+ 1594 0886 2190      		ld r2,Z+
+ 1595 0888 3C90      		ld r3,X
+ 1596               	.LVL94:
+ 1597 088a 2324      		eor r2,r3
+ 1598 088c 2D92      		st X+,r2
+ 1599 088e BE83      		std Y+6,r27
+ 1600 0890 AD83      		std Y+5,r26
+ 1601               	.L153:
+ 1602 0892 5191      		ld r21,Z+
+ 1603 0894 3C91      		ld r19,X
+ 1604 0896 5327      		eor r21,r19
+ 1605 0898 5D93      		st X+,r21
+ 1606 089a BE83      		std Y+6,r27
+ 1607 089c AD83      		std Y+5,r26
+ 1608               	.L152:
+ 1609 089e 4191      		ld r20,Z+
+ 1610 08a0 AC90      		ld r10,X
+ 1611 08a2 4A25      		eor r20,r10
+ 1612 08a4 4D93      		st X+,r20
+ 1613 08a6 BE83      		std Y+6,r27
+ 1614 08a8 AD83      		std Y+5,r26
+ 1615               	.L151:
+ 1616 08aa B190      		ld r11,Z+
+ 1617 08ac 8C90      		ld r8,X
+ 1618               	.LVL95:
+ 1619 08ae B824      		eor r11,r8
+ 1620 08b0 BD92      		st X+,r11
+ 1621 08b2 BE83      		std Y+6,r27
+ 1622 08b4 AD83      		std Y+5,r26
+ 1623 08b6 A817      		cp r26,r24
+ 1624 08b8 B907      		cpc r27,r25
+ 1625 08ba 01F4      		brne .+2
+ 1626 08bc 00C0      		rjmp .L125
+ 1627               	.L124:
+ 1628 08be DF01      		movw r26,r30
+ 1629 08c0 9D90      		ld r9,X+
+ 1630 08c2 6D01      		movw r12,r26
+ 1631 08c4 AD81      		ldd r26,Y+5
+ 1632 08c6 BE81      		ldd r27,Y+6
+ 1633 08c8 EC90      		ld r14,X
+ 1634 08ca 9E24      		eor r9,r14
+ 1635 08cc 9D92      		st X+,r9
+ 1636 08ce 8D01      		movw r16,r26
+ 1637 08d0 F180      		ldd r15,Z+1
+ 1638 08d2 AD81      		ldd r26,Y+5
+ 1639 08d4 BE81      		ldd r27,Y+6
+ 1640 08d6 1196      		adiw r26,1
+ 1641 08d8 6C91      		ld r22,X
+ 1642 08da 1197      		sbiw r26,1
+ 1643 08dc F626      		eor r15,r22
+ 1644 08de 1196      		adiw r26,1
+ 1645 08e0 FC92      		st X,r15
+ 1646 08e2 D601      		movw r26,r12
+ 1647 08e4 1196      		adiw r26,1
+ 1648 08e6 DC90      		ld r13,X
+ 1649 08e8 D801      		movw r26,r16
+ 1650 08ea 1196      		adiw r26,1
+ 1651 08ec 1C91      		ld r17,X
+ 1652 08ee 1197      		sbiw r26,1
+ 1653 08f0 D126      		eor r13,r17
+ 1654 08f2 1196      		adiw r26,1
+ 1655 08f4 DC92      		st X,r13
+ 1656 08f6 7381      		ldd r23,Z+3
+ 1657 08f8 AD81      		ldd r26,Y+5
+ 1658 08fa BE81      		ldd r27,Y+6
+ 1659 08fc 1396      		adiw r26,3
+ 1660 08fe 2C90      		ld r2,X
+ 1661 0900 1397      		sbiw r26,3
+ 1662 0902 7225      		eor r23,r2
+ 1663 0904 1396      		adiw r26,3
+ 1664 0906 7C93      		st X,r23
+ 1665 0908 1397      		sbiw r26,3
+ 1666 090a 3480      		ldd r3,Z+4
+ 1667 090c 1496      		adiw r26,4
+ 1668 090e 5C91      		ld r21,X
+ 1669 0910 1497      		sbiw r26,4
+ 1670 0912 3526      		eor r3,r21
+ 1671 0914 1496      		adiw r26,4
+ 1672 0916 3C92      		st X,r3
+ 1673 0918 1497      		sbiw r26,4
+ 1674 091a 4581      		ldd r20,Z+5
+ 1675 091c 1596      		adiw r26,5
+ 1676 091e 3C91      		ld r19,X
+ 1677 0920 1597      		sbiw r26,5
+ 1678 0922 4327      		eor r20,r19
+ 1679 0924 1596      		adiw r26,5
+ 1680 0926 4C93      		st X,r20
+ 1681 0928 1597      		sbiw r26,5
+ 1682 092a A680      		ldd r10,Z+6
+ 1683 092c 1696      		adiw r26,6
+ 1684 092e BC90      		ld r11,X
+ 1685 0930 1697      		sbiw r26,6
+ 1686 0932 AB24      		eor r10,r11
+ 1687 0934 1696      		adiw r26,6
+ 1688 0936 AC92      		st X,r10
+ 1689 0938 1697      		sbiw r26,6
+ 1690 093a 8780      		ldd r8,Z+7
+ 1691 093c 3896      		adiw r30,8
+ 1692 093e 1796      		adiw r26,7
+ 1693 0940 2C91      		ld r18,X
+ 1694 0942 1797      		sbiw r26,7
+ 1695 0944 8226      		eor r8,r18
+ 1696 0946 1796      		adiw r26,7
+ 1697 0948 8C92      		st X,r8
+ 1698 094a 1797      		sbiw r26,7
+ 1699 094c 1896      		adiw r26,8
+ 1700 094e BE83      		std Y+6,r27
+ 1701 0950 AD83      		std Y+5,r26
+ 1702 0952 A817      		cp r26,r24
+ 1703 0954 B907      		cpc r27,r25
+ 1704 0956 01F0      		breq .+2
+ 1705 0958 00C0      		rjmp .L124
+ 1706               	.L125:
+ 1707               	.LVL96:
+ 1708               	.LBE29:
+ 1709               	.LBE28:
+ 1710               	.LBB31:
+ 1711               	.LBB32:
+  26:../lib/ubi.h  **** 		message = tparam->text;
+ 1712               		.loc 2 26 0
+ 1713 095a 90E2      		ldi r25,lo8(32)
+ 1714 095c F201      		movw r30,r4
+ 1715               		0:
+ 1716 095e 1192      		st Z+,__zero_reg__
+ 1717 0960 9A95      		dec r25
+ 1718 0962 01F4      		brne 0b
+ 1719               	.LVL97:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 1720               		.loc 2 29 0
+ 1721 0964 BB81      		ldd r27,Y+3
+ 1722 0966 BF93      		push r27
+ 1723 0968 8A81      		ldd r24,Y+2
+ 1724 096a 8F93      		push r24
+ 1725 096c 5F92      		push r5
+ 1726 096e 4F92      		push r4
+ 1727 0970 88E0      		ldi r24,lo8(8)
+ 1728 0972 882E      		mov r8,r24
+ 1729 0974 912C      		mov r9,__zero_reg__
+ 1730 0976 A12C      		mov r10,__zero_reg__
+ 1731 0978 B12C      		mov r11,__zero_reg__
+ 1732 097a C12C      		mov r12,__zero_reg__
+ 1733 097c D12C      		mov r13,__zero_reg__
+ 1734 097e E12C      		mov r14,__zero_reg__
+ 1735 0980 F12C      		mov r15,__zero_reg__
+ 1736 0982 00E0      		ldi r16,0
+ 1737 0984 10E0      		ldi r17,0
+ 1738 0986 20E0      		ldi r18,0
+ 1739 0988 30E0      		ldi r19,0
+ 1740 098a 40E0      		ldi r20,0
+ 1741 098c 50E0      		ldi r21,0
+ 1742 098e 60E0      		ldi r22,0
+ 1743 0990 7FEF      		ldi r23,lo8(-1)
+ 1744 0992 C301      		movw r24,r6
+ 1745 0994 0E94 0000 		call threefish_256_enc
+ 1746               	.LVL98:
+ 1747               	.LBE32:
+ 1748               	.LBE31:
+  97:../lib/skein.c **** 	DEBUG_64(tparam->key, 4);
+  98:../lib/skein.c **** 	ubi_iterate(tparam, NULL, 0, (SKEIN_SINGLE | Tout) << 8, 8, out);
+  99:../lib/skein.c **** 	DEBUG_64(out, 4);
+ 100:../lib/skein.c **** }
+ 1749               		.loc 1 100 0
+ 1750 0998 0F90      		pop __tmp_reg__
+ 1751 099a 0F90      		pop __tmp_reg__
+ 1752 099c 0F90      		pop __tmp_reg__
+ 1753 099e 0F90      		pop __tmp_reg__
+ 1754               	/* epilogue start */
+ 1755 09a0 2696      		adiw r28,6
+ 1756 09a2 0FB6      		in __tmp_reg__,__SREG__
+ 1757 09a4 F894      		cli
+ 1758 09a6 DEBF      		out __SP_H__,r29
+ 1759 09a8 0FBE      		out __SREG__,__tmp_reg__
+ 1760 09aa CDBF      		out __SP_L__,r28
+ 1761 09ac DF91      		pop r29
+ 1762 09ae CF91      		pop r28
+ 1763 09b0 1F91      		pop r17
+ 1764 09b2 0F91      		pop r16
+ 1765 09b4 FF90      		pop r15
+ 1766 09b6 EF90      		pop r14
+ 1767 09b8 DF90      		pop r13
+ 1768 09ba CF90      		pop r12
+ 1769 09bc BF90      		pop r11
+ 1770 09be AF90      		pop r10
+ 1771 09c0 9F90      		pop r9
+ 1772 09c2 8F90      		pop r8
+ 1773 09c4 7F90      		pop r7
+ 1774 09c6 6F90      		pop r6
+ 1775               	.LVL99:
+ 1776 09c8 5F90      		pop r5
+ 1777 09ca 4F90      		pop r4
+ 1778 09cc 3F90      		pop r3
+ 1779 09ce 2F90      		pop r2
+ 1780 09d0 0895      		ret
+ 1781               	.LVL100:
+ 1782               	.L122:
+ 1783               	.LBB33:
+ 1784               	.LBB30:
+  25:../lib/ubi.h  **** 		memset(tparam->text+message_len, 0, 32-message_len);
+ 1785               		.loc 2 25 0
+ 1786 09d2 042F      		mov r16,r20
+ 1787 09d4 10E0      		ldi r17,0
+ 1788 09d6 2301      		movw r4,r6
+ 1789 09d8 88E2      		ldi r24,40
+ 1790 09da 480E      		add r4,r24
+ 1791 09dc 511C      		adc r5,__zero_reg__
+ 1792               	.LVL101:
+ 1793 09de A801      		movw r20,r16
+ 1794 09e0 C201      		movw r24,r4
+ 1795 09e2 0E94 0000 		call memcpy
+ 1796               	.LVL102:
+  26:../lib/ubi.h  **** 		message = tparam->text;
+ 1797               		.loc 2 26 0
+ 1798 09e6 40E2      		ldi r20,lo8(32)
+ 1799 09e8 50E0      		ldi r21,0
+ 1800 09ea 401B      		sub r20,r16
+ 1801 09ec 510B      		sbc r21,r17
+ 1802 09ee 60E0      		ldi r22,0
+ 1803 09f0 70E0      		ldi r23,0
+ 1804 09f2 C201      		movw r24,r4
+ 1805 09f4 800F      		add r24,r16
+ 1806 09f6 911F      		adc r25,r17
+ 1807 09f8 0E94 0000 		call memset
+ 1808               	.LVL103:
+  29:../lib/ubi.h  **** 	for (i = 0; i < message_len; i++) out[i] ^= *real_msg++;
+ 1809               		.loc 2 29 0
+ 1810 09fc C501      		movw r24,r10
+ 1811 09fe AA27      		clr r26
+ 1812 0a00 BB27      		clr r27
+ 1813 0a02 AE80      		ldd r10,Y+6
+ 1814 0a04 AF92      		push r10
+ 1815 0a06 BD80      		ldd r11,Y+5
+ 1816 0a08 BF92      		push r11
+ 1817 0a0a 5F92      		push r5
+ 1818 0a0c 4F92      		push r4
+ 1819 0a0e 5C01      		movw r10,r24
+ 1820 0a10 C12C      		mov r12,__zero_reg__
+ 1821 0a12 D12C      		mov r13,__zero_reg__
+ 1822 0a14 E12C      		mov r14,__zero_reg__
+ 1823 0a16 F12C      		mov r15,__zero_reg__
+ 1824 0a18 00E0      		ldi r16,0
+ 1825 0a1a 10E0      		ldi r17,0
+ 1826 0a1c 20E0      		ldi r18,0
+ 1827 0a1e 30E0      		ldi r19,0
+ 1828 0a20 40E0      		ldi r20,0
+ 1829 0a22 50E0      		ldi r21,0
+ 1830 0a24 60E0      		ldi r22,0
+ 1831 0a26 7C81      		ldd r23,Y+4
+ 1832 0a28 C301      		movw r24,r6
+ 1833 0a2a 0E94 0000 		call threefish_256_enc
+ 1834               	.LVL104:
+ 1835               		.loc 2 30 0
+ 1836 0a2e 0F90      		pop __tmp_reg__
+ 1837 0a30 0F90      		pop __tmp_reg__
+ 1838 0a32 0F90      		pop __tmp_reg__
+ 1839 0a34 0F90      		pop __tmp_reg__
+ 1840 0a36 3110      		cpse r3,__zero_reg__
+ 1841 0a38 00C0      		rjmp .L123
+ 1842 0a3a 00C0      		rjmp .L125
+ 1843               	.LBE30:
+ 1844               	.LBE33:
+ 1845               		.cfi_endproc
+ 1846               	.LFE7:
+ 1848               		.comm	skein_iv,32,1
+ 1849               		.section	.progmem.data,"a",@progbits
+ 1852               	skein_default_iv:
+ 1853 0000 49        		.byte	73
+ 1854 0001 B4        		.byte	-76
+ 1855 0002 48        		.byte	72
+ 1856 0003 D0        		.byte	-48
+ 1857 0004 60        		.byte	96
+ 1858 0005 A8        		.byte	-88
+ 1859 0006 9D        		.byte	-99
+ 1860 0007 FC        		.byte	-4
+ 1861 0008 33        		.byte	51
+ 1862 0009 D8        		.byte	-40
+ 1863 000a A7        		.byte	-89
+ 1864 000b 9F        		.byte	-97
+ 1865 000c 47        		.byte	71
+ 1866 000d 66        		.byte	102
+ 1867 000e CA        		.byte	-54
+ 1868 000f 2F        		.byte	47
+ 1869 0010 0F        		.byte	15
+ 1870 0011 84        		.byte	-124
+ 1871 0012 56        		.byte	86
+ 1872 0013 66        		.byte	102
+ 1873 0014 89        		.byte	-119
+ 1874 0015 C3        		.byte	-61
+ 1875 0016 3B        		.byte	59
+ 1876 0017 B3        		.byte	-77
+ 1877 0018 69        		.byte	105
+ 1878 0019 DA        		.byte	-38
+ 1879 001a E8        		.byte	-24
+ 1880 001b FD        		.byte	-3
+ 1881 001c 20        		.byte	32
+ 1882 001d E9        		.byte	-23
+ 1883 001e 54        		.byte	84
+ 1884 001f 6A        		.byte	106
+ 1885               		.text
+ 1886               	.Letext0:
+ 1887               		.file 3 "../lib/fhreefish.h"
+ 1888               		.file 4 "/usr/lib/avr/include/avr/pgmspace.h"
+DEFINED SYMBOLS
+                            *ABS*:0000000000000000 skein.c
+     /tmp/ccYjuFZo.s:2      *ABS*:000000000000003e __SP_H__
+     /tmp/ccYjuFZo.s:3      *ABS*:000000000000003d __SP_L__
+     /tmp/ccYjuFZo.s:4      *ABS*:000000000000003f __SREG__
+     /tmp/ccYjuFZo.s:5      *ABS*:0000000000000000 __tmp_reg__
+     /tmp/ccYjuFZo.s:6      *ABS*:0000000000000001 __zero_reg__
+     /tmp/ccYjuFZo.s:12     .text:0000000000000000 skein_256_256_default_iv
+     /tmp/ccYjuFZo.s:1852   .progmem.data:0000000000000000 skein_default_iv
+                            *COM*:0000000000000020 skein_iv
+     /tmp/ccYjuFZo.s:35     .text:0000000000000010 skein_256_256_personalize_M
+     /tmp/ccYjuFZo.s:280    .text:000000000000013c skein_256_256
+     /tmp/ccYjuFZo.s:1065   .text:0000000000000608 skein_256_256_start
+     /tmp/ccYjuFZo.s:1106   .text:000000000000062e skein_256_256_add
+     /tmp/ccYjuFZo.s:1344   .text:000000000000074a skein_256_256_finish
+
+UNDEFINED SYMBOLS
+memcpy_P
+threefish_256_enc
+memcpy
+memset
+__do_clear_bss

@@ -28,7 +28,8 @@
 #include "Fifo.h"
 #include "Art.h"
 #include "Atr.h"
-
+#include "BkrndTask.h"
+#include "Seed.h"
 
 static uint8_t ATR_BYTE[ATR_BYTE_TO_SEND]={ATR_BYTE_0,ATR_BYTE_1,ATR_BYTE_2,ATR_BYTE_3};
 extern uint8_t stateText[];
@@ -38,6 +39,7 @@ uint8_t Atr_main(struct art_config* artPtr)
 	uint8_t byteSent = 0;
 	CLR_BIT(ATR_PORT,ATR_PIN);
 	while(ATR_LOW == GET_BIT(PINB,ATR_PIN));
+//	Seed_pause();
 	while (byteSent < ATR_BYTE_TO_SEND)
 	{
 		if(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
@@ -46,6 +48,10 @@ uint8_t Atr_main(struct art_config* artPtr)
 				Fifo_write(artPtr->txFifo,ATR_BYTE[byteSent]);
 				Art_txByteStart(artPtr);
 				byteSent++;
+		}
+		else
+		{
+//				BkrndTask();
 		}
 	}
 	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
@@ -58,9 +64,12 @@ uint8_t Apdu_decryptKey(struct art_config* artPtr)
 	byteSent=0;
 	Art_duplexMode(artPtr,RECEIVER);
 	Art_rxByteStart(artPtr);
+	BkrndTask();
 	while(byteSent < 5)
 	{
-		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
+		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP))
+		{
+		}
 		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
 		byteSent++;
 	}
@@ -71,11 +80,15 @@ uint8_t Apdu_decryptKey(struct art_config* artPtr)
 		Art_duplexMode(artPtr,TRANSMITTER);
 		Fifo_write(artPtr->txFifo,239);
 		Art_txByteStart(artPtr);
-		while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+		while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+		{
+		}
 		artPtr->statusReg=0;
 		Art_duplexMode(artPtr,RECEIVER);
 		Art_rxByteStart(artPtr);
-		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
+		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP))
+		{
+		}
 		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
 		stateText[byteSent++]=artPtr->rxBuffer;
 	}
@@ -89,17 +102,26 @@ uint8_t Apdu_getResponse(struct art_config* artPtr)
 	Art_duplexMode(artPtr,TRANSMITTER);
 	Fifo_write(artPtr->txFifo,0x61);
 	Art_txByteStart(artPtr);
-	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+	{
+//		BkrndTask();
+	}
 	Fifo_write(artPtr->txFifo,0x10);
 	Art_txByteStart(artPtr);
-	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+	{
+//		BkrndTask();
+		
+	}
 	artPtr->statusReg=0;
 	byteSent=0;
 	Art_duplexMode(artPtr,RECEIVER);
 	Art_rxByteStart(artPtr);
 	while(byteSent < 5)
 	{
-		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP));
+		while(0==GET_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP))
+		{
+		}
 		CLR_BIT(artPtr->statusReg,ART_STATUS_REG_RX_COMP);
 		byteSent++;
 	}
@@ -108,7 +130,9 @@ uint8_t Apdu_getResponse(struct art_config* artPtr)
 	Art_duplexMode(artPtr,TRANSMITTER);
 	Fifo_write(artPtr->txFifo,0xC0);
 	Art_txByteStart(artPtr);
-	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+	{
+	}
 	byteSent=0;
 	while (byteSent < 16)
 	{
@@ -119,12 +143,16 @@ uint8_t Apdu_getResponse(struct art_config* artPtr)
 				Art_txByteStart(artPtr);
 		}
 	}
-	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+	{
+	}
 	artPtr->statusReg = 0;
 	Art_duplexMode(artPtr,TRANSMITTER);
 	Fifo_write(artPtr->txFifo,0x9D);
 	Art_txByteStart(artPtr);
-	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));
+	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX))
+	{
+	}
 	Fifo_write(artPtr->txFifo,0x00);
 	Art_txByteStart(artPtr);
 	while(0!=GET_BIT(artPtr->statusReg,ART_STATUS_REG_TX));

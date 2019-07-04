@@ -62,14 +62,15 @@ SRC = $(wildcard ../src/*.c)
 # Even though the DOS/Win* filesystem matches both .s and .S the same,
 # it will preserve the spelling of the filenames, and gcc itself does
 # care about how the name is spelled on its command-line.
-ASRC = 
+ASRC = $(wildcard ../asrc/*.S)
 
-
+LIBSRC = $(wildcard ../lib/*.c)
+LIBSRCS = $(wildcard ../lib/*.s)
 
 # Optimization level, can be [0, 1, 2, 3, s]. 
 # 0 = turn off optimization. s = optimize for size.
 # (Note: 3 is not always the best optimization level. See avr-libc FAQ.)
-OPT =2
+OPT =3
 
 # Debugging format.
 # Native formats for AVR-GCC's -g are stabs [default], or dwarf-2.
@@ -79,7 +80,7 @@ DEBUG = dwarf-2
 
 # List any extra directories to look for include files here.
 #     Each directory must be seperated by a space.
-EXTRAINCDIRS = ../include
+EXTRAINCDIRS = ../include ../lib
 
 
 # Compiler flag to set the C Standard level.
@@ -164,7 +165,7 @@ EXTMEMOPTS =
 #    --cref:    add cross reference to  map file
 LDFLAGS = -Wl,-Map=$(TARGET).map,--cref
 LDFLAGS += $(EXTMEMOPTS)
-LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB)
+LDFLAGS += $(PRINTF_LIB) $(SCANF_LIB) $(MATH_LIB) libfhreefish.a
 
 
 
@@ -183,7 +184,7 @@ AVRDUDE_PROGRAMMER = avrisp2
 AVRDUDE_PORT = usb    # programmer connected to serial device
 
 AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET).hex
-#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
+AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET).eep
 
 
 # Uncomment the following if you want avrdude's erase cycle counter.
@@ -254,10 +255,10 @@ MSG_CLEANING = Cleaning project:
 
 # Define all object files.
 OBJ = $(SRC:.c=.o) $(ASRC:.S=.o) 
+LIBOBJ = $(LIBSRC:.c=.o) $(LIBSRCS:.S=.o)
 
 # Define all listing files.
 LST = $(ASRC:.S=.lst) $(SRC:.c=.lst)
-
 
 # Compiler flags to generate dependency files.
 ### GENDEPFLAGS = -Wp,-M,-MP,-MT,$(*F).o,-MF,.dep/$(@F).d
@@ -275,14 +276,13 @@ ALL_ASFLAGS = -mmcu=$(MCU) -I. -x assembler-with-cpp $(ASFLAGS)
 # Default target.
 all: begin gccversion sizebefore build sizeafter finished end
 
-build: elf hex eep lss sym
+build: elf hex eep lss sym libfhreefish.a
 
 elf: $(TARGET).elf
 hex: $(TARGET).hex
 eep: $(TARGET).eep
 lss: $(TARGET).lss 
 sym: $(TARGET).sym
-
 
 
 # Eye candy.

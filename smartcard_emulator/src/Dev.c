@@ -19,6 +19,7 @@ void Dev_timerInit(void)
 		TCNT1 = 0;
 		OCR1A = *(devPtr-> timerValue);
 	}
+	SET_BIT(TIFR1, OCF1A);
 	SET_BIT(TIMSK1, OCIE1A);
 }
 
@@ -178,8 +179,8 @@ void Dev_init(struct dev_config * devSt)
 {
 	devPtr = devSt;
 	Dev_timerInit();
-	Dev_auxTimerInit();
-	Dev_configRxCompInterrupt();
+	//Dev_auxTimerInit();
+	//Dev_configRxCompInterrupt();
 }
 
 void Dev_raiseTxComplInt(void)
