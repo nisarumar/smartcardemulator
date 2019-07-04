@@ -18,15 +18,14 @@
  *
  *
  */
-
-
 #include <stdio.h>
 #include <string.h>
 #include <AES.h>
 #include <stdlib.h>
-#include "aes_shuffling.h"
-#define SHUFFLING
+#include <time.h>
+//#define SHUFFLING
 //#define DUMMY
+#define MASKING
 /*
  *This MACRO is understood and taken from https://github.com/kokke/tiny-AES-c/blob/master/aes.c
  */
@@ -73,23 +72,28 @@ const uint8_t roundkeyarr [176] ={
 //const uint8_t rcon [10] ={0x01, 0x02,  0x04, 0x08,  0x10,  0x20,  0x40,  0x80,  0x1b,  0x36};
 uint8_t	stateText [16] = {0x79,	0x9F, 0xFD,	0x33, 0x7C,	0x8E, 0x7D, 0x9A, 0xCC, 0xD0, 0xCA, 0xC5, 0x19, 0x16, 0x33, 0x4D};
 //uint8_t key[16]={0xB5, 0x2E, 0x33, 0xB1, 0x2A, 0x71, 0x1D, 0xCB, 0xF9, 0xA7, 0x8A, 0xD7, 0x39, 0xD8, 0x82, 0x08 };
+#ifdef SHUFFLING
+extern uint8_t shuffling_array[];
+void generate_new_shuffling_array(uint8_t seed);
+#endif
+#ifdef DUMMY
+void add_dummy_operations(uint8_t round);
+#endif
 
 #ifdef MASKING
 uint8_t mask_in ;
 uint8_t mask_out;
-	
 uint8_t m_in_inv_col [4]= {0x00,0x00,0x00,0x00};
 uint8_t m_out_inv_col[4] ={0x00,0x00,0x00,0x00};
 uint8_t masked_round_key[176]={0};
 uint8_t masked_aes_invsbox[256];
-#endif
-
-void add_dummy_operations(uint8_t round);
 void init_masking(void);
 void generate_output_masks(void);
-void remasking_state(uint8_t *stateText);
+void remask_state(uint8_t *stateText);
 void mask_state(uint8_t *stateText);
 void gen_masked_roundkey_array(void);
+#endif
+
 
 #ifdef MASKING
 void gen_masked_roundkey_array(void){
@@ -102,7 +106,7 @@ void gen_masked_roundkey_array(void){
 			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^m_out_inv_col[row]^mask_in;
 			}
 		}
-		else if (round>=1 and round<10){
+		else if (round>=1 && round<10){
 			for(uint8_t row=0; row<4 ; row++){
 			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^m_in_inv_col[row]^mask_out;
 			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^m_in_inv_col[row]^mask_out;
@@ -130,7 +134,7 @@ void mask_state(uint8_t *stateText){
 }
 
 
-void remasking_state(uint8_t *stateText){
+void remask_state(uint8_t *stateText){
 	
 	for (uint8_t i =0 ; i<4 ;i++){
 		stateText[i+0] ^=m_out_inv_col[i]^mask_in; 
@@ -155,6 +159,7 @@ void generate_output_masks(void)
 }
 void init_masking(void){
 	//replace rand() by PRNG
+	
 	mask_in = (uint8_t)rand();
 	mask_out= mask_in;
 	
@@ -178,7 +183,8 @@ void add_round_key(uint8_t* stateText,uint8_t roundnum){
 	 for (uint8_t i =0; i<16; i++){
 		#ifdef SHUFFLING
 			stateText[shuffling_array[i]] ^= roundkeyarr[16*roundnum + shuffling_array[i]];
-		#elif MASKING
+		#endif
+		#ifdef MASKING
 			stateText[i] ^= masked_round_key[16*roundnum + i];
 		#else
 			stateText[i] ^= roundkeyarr[16*roundnum + i];
@@ -191,26 +197,35 @@ void add_round_key(uint8_t* stateText,uint8_t roundnum){
 }
 //Inverse subbytes 
 void inverse_subbytes(uint8_t* stateText, uint8_t roundNum){
-	for(uint8_t i =0; i<16; i++){
-		
-		#ifdef SHUFFLING
-			stateText[shuffling_array[i]] = aes_invsbox[stateText[shuffling_array[i]]];
-		#elif MASKING 
-			stateText[i] = masked_aes_invsbox[stateText[i]];
-		#else
-			stateText[i] = aes_invsbox[stateText[i]];
-		#endif
-
 		#ifdef DUMMY
 			uint8_t max_ops =60;
 			static uint8_t completed_ops = 0;
 			uint8_t current_ops_count =0;
 			uint8_t number_of_ops =0;
 			uint8_t dummy_output =0;
-			//uint8_t remaining_ops = max_ops-completed_ops;
-				//number_of_ops = round&(number_of_ops = max_ops - completed_ops)
+
 				if(roundNum==0){number_of_ops = max_ops - completed_ops;}
-				else{number_of_ops = (uint8_t)(rand()%5);}
+				else{	srand(roundNum);
+					number_of_ops = (uint8_t)(rand()%5);}
+
+				while(completed_ops < max_ops && current_ops_count<number_of_ops){
+					dummy_output ^= aes_invsbox[dummy_output];
+					completed_ops++;
+					current_ops_count++;
+			}
+		#endif
+	
+	for(uint8_t i =0; i<16; i++){	
+		#ifdef SHUFFLING
+			stateText[shuffling_array[i]] = aes_invsbox[stateText[shuffling_array[i]]];
+		#endif
+		#ifdef MASKING 
+			stateText[i] = masked_aes_invsbox[stateText[i]];
+		#else
+			stateText[i] = aes_invsbox[stateText[i]];
+		#endif
+
+		#ifdef DUMMY
 				while(completed_ops < max_ops && current_ops_count<number_of_ops){
 					dummy_output ^= aes_invsbox[dummy_output];
 					completed_ops++;
@@ -334,12 +349,12 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 //generating the array for shuffling of operations(add round key and inverse sbox)
 #ifdef SHUFFLING
 uint8_t shuffling_array[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-void generate_new_shuffling_array(void) {
+void generate_new_shuffling_array(uint8_t seed) {
 
 	uint8_t i = 15; // array end
 	uint8_t j = 0;  // init value
 	do
-	{	
+	{	srand(seed);
 		j = ((uint8_t)rand())%(i+1); 		
 		//swap the last element with element at random index
 		uint8_t temp = shuffling_array[i];
@@ -349,33 +364,14 @@ void generate_new_shuffling_array(void) {
 	}while(i!=0);
 }
 #endif
-/*
-#ifdef DUMMY
-//adding dummy opeations in round key and inverse box
-void add_dummy_operations(uint8_t round){
-	uint8_t max_ops =60;
-	static uint8_t completed_ops = 0;
-	uint8_t current_ops_count =0;
-	uint8_t number_of_ops =0;
-	uint8_t dummy_output =0;
-	//uint8_t remaining_ops = max_ops-completed_ops;
-			number_of_ops = round&(number_of_ops = max_ops - completed_ops)
-			if(round==0){number_of_ops = max_ops - completed_ops;}
-			else{number_of_ops = (uint8_t)(rand()%5);}
-			while(completed_ops < max_ops && current_ops_count<number_of_ops){
-				dummy_output ^= aes_invsbox[dummy_output];
-				completed_ops++;
-				current_ops_count++;
-			}			
-} 
-#endif*/
+
 void aes_dec_128(uint8_t* state){
 
 	uint8_t roundCount=10;
 	 
 	//Generating the shuffling _array[] for randomness in operation
 	#ifdef SHUFFLING
-		generate_new_shuffling_array();
+		generate_new_shuffling_array(5);
 	#endif
 	
 	#ifdef MASKING
@@ -402,6 +398,9 @@ void aes_dec_128(uint8_t* state){
 	}
 
 	//final round
+	#ifdef SHUFFLING
+	generate_new_shuffling_array(10);
+	#endif
 	inverse_shift_rows(state);
 	inverse_subbytes(state,roundCount);
 	add_round_key(state,roundCount);

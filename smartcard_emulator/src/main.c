@@ -10,17 +10,18 @@
 #include "Atr.h"
 #include "AES.h"
 
-#define SHUFFLING
+//#define SHUFFLING
 //#define DUMMY
-//#define MA#SKING
+#define MASKING
 extern uint8_t stateText[];
 
 void main (void){
 	IoStream_LinkStream();
+	
 	struct art_config tty;
 	struct dev_config dev0;
 	
-    	DDRA = 0xFF;
+    DDRA = 0xFF;
 	MK_FIFO(tx_fifo,5);
 	MK_FIFO(rx_fifo,5);
 	tty.etu = 372;
@@ -37,6 +38,8 @@ void main (void){
 	Art_duplexMode(&tty,TRANSMITTER);
 	TRIGGER_INIT();
 	sei();
+
+
 	Atr_main(&tty);
 	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
 	while(1){	
