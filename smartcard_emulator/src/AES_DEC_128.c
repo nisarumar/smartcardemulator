@@ -18,23 +18,27 @@
  *
  *
  */
-
-
 #include <stdio.h>
 #include <string.h>
 #include <AES.h>
-//#define gf256mul(a,b) gf_antilog_table[(gf_log_table[a] + gf_log_table[b])%255]
-
+#include <stdlib.h>
+#include <time.h>
+#include <Rng.h>
+//#define SHUFFLING
+//#define DUMMY
+//#define NORMAL
+#define MASKING
 /*
  *This MACRO is understood and taken from https://github.com/kokke/tiny-AES-c/blob/master/aes.c
  */
+extern uint8_t Rng_rand[];
 # define gf256mul(x,y)      					\
 		(((y & 1) * x) ^						\
         ((y>>1 & 1) * xtime(x)) ^	          	\
         ((y>>2 & 1) * xtime(xtime(x))) ^		\
         ((y>>3 & 1) * xtime(xtime(xtime(x)))) ^	\
         ((y>>4 & 1) * xtime(xtime(xtime(xtime(x)))))) 
-        
+
 const uint8_t aes_invsbox[256] = {
  0x52, 0x09, 0x6a, 0xd5, 0x30, 0x36, 0xa5, 0x38, 0xbf, 0x40, 0xa3, 0x9e, 0x81, 0xf3, 0xd7, 0xfb,
  0x7c, 0xe3, 0x39, 0x82, 0x9b, 0x2f, 0xff, 0x87, 0x34, 0x8e, 0x43, 0x44, 0xc4, 0xde, 0xe9, 0xcb,
@@ -70,20 +74,193 @@ const uint8_t roundkeyarr [176] ={
 //const uint8_t rcon [10] ={0x01, 0x02,  0x04, 0x08,  0x10,  0x20,  0x40,  0x80,  0x1b,  0x36};
 uint8_t	stateText [16] = {0x79,	0x9F, 0xFD,	0x33, 0x7C,	0x8E, 0x7D, 0x9A, 0xCC, 0xD0, 0xCA, 0xC5, 0x19, 0x16, 0x33, 0x4D};
 //uint8_t key[16]={0xB5, 0x2E, 0x33, 0xB1, 0x2A, 0x71, 0x1D, 0xCB, 0xF9, 0xA7, 0x8A, 0xD7, 0x39, 0xD8, 0x82, 0x08 };
+#ifdef SHUFFLING
+extern uint8_t shuffling_array[];
+void generate_new_shuffling_array();
+#endif
+#ifdef DUMMY
+void add_dummy_operations(uint8_t round);
+#endif
+
+#ifdef MASKING
+uint8_t mask_in ;
+uint8_t mask_out;
+uint8_t m_in_inv_col [4]= {0x00,0x00,0x00,0x00};
+uint8_t m_out_inv_col[4] ={0x00,0x00,0x00,0x00};
+uint8_t masked_round_key[176]={0};
+uint8_t masked_aes_invsbox[256];
+void init_masking(void);
+void generate_output_masks(void);
+void remask_state(uint8_t *stateText);
+void mask_state(uint8_t *stateText);
+void gen_masked_roundkey_array(void);
+#endif
 
 
-void add_round_key(uint8_t* stateText, const uint8_t* roundKey, uint8_t roundnum){
+#ifdef MASKING
+void gen_masked_roundkey_array(void){
+	for (uint8_t round=0; round <11; round++){
+		if(round ==10){
+			for(uint8_t row=0; row<4 ; row++){
+			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^m_out_inv_col[row]^mask_in;
+			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^m_out_inv_col[row]^mask_in;
+			masked_round_key[(round<<4)+row + 8] = roundkeyarr[(round<<4)+row + 8]^m_out_inv_col[row]^mask_in;
+			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^m_out_inv_col[row]^mask_in;
+			}
+		}
+		else if (round>=1 && round<10){
+			for(uint8_t row=0; row<4 ; row++){
+			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^m_in_inv_col[row]^mask_out;
+			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^m_in_inv_col[row]^mask_out;
+			masked_round_key[(round<<4)+row + 8] = roundkeyarr[(round<<4)+row + 8]^m_in_inv_col[row]^mask_out;
+			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^m_in_inv_col[row]^mask_out;
+			}
+		}
+		else{
+			for(uint8_t row=0; row<4 ; row++){
+			masked_round_key[(round<<4)+row + 0] = roundkeyarr[(round<<4)+row + 0]^mask_in;
+			masked_round_key[(round<<4)+row + 4] = roundkeyarr[(round<<4)+row + 4]^mask_in;
+			masked_round_key[(round<<4)+row + 8] = roundkeyarr[(round<<4)+row + 8]^mask_in;
+			masked_round_key[(round<<4)+row+ 12] = roundkeyarr[(round<<4)+row + 12]^mask_in;
+			}	
+		}
+	}
+}
+void mask_state(uint8_t *stateText){
+	for(uint8_t i=0 ; i<4 ; i++){
+		stateText[i+0] ^= m_out_inv_col[i];  		
+		stateText[i+4] ^= m_out_inv_col[i];
+		stateText[i+8] ^= m_out_inv_col[i];
+		stateText[i+12] ^= m_out_inv_col[i];
+	}
+}
+
+
+void remask_state(uint8_t *stateText){
+	
+	for (uint8_t i =0 ; i<4 ;i++){
+		stateText[i+0] ^=m_out_inv_col[i]^mask_in; 
+		stateText[i+4] ^=m_out_inv_col[i]^mask_in; 
+		stateText[i+8] ^=m_out_inv_col[i]^mask_in; 
+		stateText[i+12] ^=m_out_inv_col[i]^mask_in; 
+	}
+}
+
+
+void generate_output_masks(void)
+{
+    //Creating output masks starts here.
+    m_out_inv_col[0] = gf256mul(m_in_inv_col[0],0x0e)^gf256mul(m_in_inv_col[1],0x0b)^gf256mul(m_in_inv_col[2],0x0d)^gf256mul(m_in_inv_col[3],0x09);
+						
+    m_out_inv_col[1] = gf256mul(m_in_inv_col[0],0x09)^gf256mul(m_in_inv_col[1],0x0e)^gf256mul(m_in_inv_col[2],0x0b)^gf256mul(m_in_inv_col[3],0x0d);
+						
+    m_out_inv_col[2] = gf256mul(m_in_inv_col[0],0x0d)^gf256mul(m_in_inv_col[1],0x09)^gf256mul(m_in_inv_col[2],0x0e)^gf256mul(m_in_inv_col[3],0x0b);
+						
+    m_out_inv_col[3] = gf256mul(m_in_inv_col[0],0x0b)^gf256mul(m_in_inv_col[1],0x0d)^gf256mul(m_in_inv_col[2],0x09)^gf256mul(m_in_inv_col[3],0x0e);
+    //Creating output masks ends here.
+}
+void init_masking(void){
+	
+	mask_in = Rng_rand[4];
+	mask_out= mask_in;
+	
+	//repalce rand() by TRNG
+	m_in_inv_col[0]= Rng_rand[0];
+	m_in_inv_col[1]= Rng_rand[1];
+	m_in_inv_col[2]= Rng_rand[2];
+	m_in_inv_col[3]= Rng_rand[3];
+	
+	/*
+	mask_i_1 = Rng_rand[4];
+	mask_out_1= mask_in_1;
+	
+	mask_i_2 = Rng_rand[5];
+	mask_out_2= mask_in_2;
+	
+	mask_i_3 = Rng_rand[6];
+	mask_out_3= mask_in_3;
+	
+	mask_i_4 = Rng_rand[7];
+	mask_out_4= mask_in_4;
+	*/
+	
+	// compute output masks for each coloumn in inverse sub bytes  from input masks
+	generate_output_masks();
+	
+	for(uint16_t i =0 ; i<256 ; i++){
+		masked_aes_invsbox[i^mask_out] = aes_invsbox[i]^mask_in;
+	}
+}
+#endif
+        
+//Adding the round key with shuffling
+void add_round_key(uint8_t* stateText,uint8_t roundnum){
 	 for (uint8_t i =0; i<16; i++){
-		 stateText[i] ^= roundKey[16*roundnum + i];
+		#ifdef SHUFFLING
+			stateText[shuffling_array[i]] ^= roundkeyarr[16*roundnum + shuffling_array[i]];
+		#endif
+		
+		#ifdef MASKING
+			stateText[i] ^= masked_round_key[16*roundnum + i];
+		#endif
+		
+		#if defined(MASKING) && defined(SHUFFLING)
+			stateText[shuffling_array[i]] ^= masked_round_key[16*roundnum + shuffling_array[i]];
+		#endif
+		
+		#ifdef NORMAL
+			stateText[i] ^= roundkeyarr[16*roundnum + i];
+		#endif
 	}
 	//printf("\nAfter add round %d is \n",roundnum);
 	//for (uint8_t i=0; i<16; i++){
 	//		printf("%x ",stateText[i]);
 	//}
 }
-void inverse_subbytes(uint8_t* stateText,  const uint8_t* invsbox){
-	for(uint8_t i =0; i<16; i++){
-		stateText[i] = invsbox[stateText[i]];
+//Inverse subbytes 
+void inverse_subbytes(uint8_t* stateText, uint8_t roundNum){
+		#ifdef DUMMY
+			uint8_t max_ops =80;
+			static uint8_t completed_ops = 0;
+			uint8_t current_ops_count =0;
+			uint8_t number_of_ops =0;
+			uint8_t dummy_output =0;
+
+				if(roundNum==0){number_of_ops = max_ops - completed_ops;}
+				else{	srand(roundNum);
+					number_of_ops =Rng_rand[roundNum]%4;}
+
+				while(completed_ops < max_ops && current_ops_count<number_of_ops){
+					dummy_output ^= aes_invsbox[dummy_output];
+					completed_ops++;
+					current_ops_count++;
+			}
+		#endif
+	
+	for(uint8_t i =0; i<16; i++){	
+		#ifdef SHUFFLING
+			stateText[shuffling_array[i]] = aes_invsbox[stateText[shuffling_array[i]]];
+		#endif
+		
+		#if defined(MASKING) && defined(SHUFFLING)
+			stateText[shuffling_array[i]] = masked_aes_invsbox[stateText[shuffling_array[i]]];
+		#endif
+		
+		#ifdef MASKING 
+			stateText[i] = masked_aes_invsbox[stateText[i]];
+		#endif
+		#ifdef NORMAL 
+			stateText[i] = aes_invsbox[stateText[i]];
+		#endif
+		
+		#ifdef DUMMY
+				while(completed_ops < max_ops && current_ops_count<number_of_ops){
+					dummy_output ^= aes_invsbox[dummy_output];
+					completed_ops++;
+					current_ops_count++;
+			}
+		#endif
+
 	}
 	//printf("\nAfter inverse subytes is \n");
 	//for (uint8_t i=0; i<16; i++){
@@ -201,25 +378,68 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 		}
 }
 #endif
+//generating the array for shuffling of operations(add round key and inverse sbox)
+#ifdef SHUFFLING
+uint8_t shuffling_array[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
+void generate_new_shuffling_array() {
 
-void aes_dec_128(uint8_t* state ,const uint8_t* roundkeyarray ){
+	uint8_t i = 15; // array end
+	uint8_t j = 0;  // init value
+	do
+	{		j = Rng_rand[i]%(i+1); 		
+		//swap the last element with element at random index
+		uint8_t temp = shuffling_array[i];
+		shuffling_array[i] = shuffling_array[j];
+		shuffling_array[j] = temp;
+		--i;
+	}while(i!=0);
+}
+#endif
 
-	  uint8_t roundCount=10;
-	  //add round key
+void aes_dec_128(uint8_t* state){
 
-	   add_round_key(stateText,roundkeyarr, 10);
-	   roundCount--;
-	  // first 9 rounds
-	   for (; roundCount > 0 ; roundCount--){
-			inverse_shift_rows(stateText);
-			inverse_subbytes(stateText,aes_invsbox);
-			add_round_key(stateText,roundkeyarr,roundCount);
-			inverse_mix_coloumns(stateText);
-		}
+	uint8_t roundCount=10;
+	
+	#ifdef DUMMY
+		Rng_fill(RNG_NUMBER);
+	#endif
+	 
+	//Generating the shuffling _array[] for randomness in operation
+	#ifdef SHUFFLING
+		Rng_fill(RNG_NUMBER);
+		generate_new_shuffling_array(10);
+	#endif
+	
+	#ifdef MASKING
+		Rng_fill(RNG_NUMBER);
+		init_masking();
+		gen_masked_roundkey_array();
+		mask_state(state);
+	#endif
+	  
+	//add round key
+	
+	add_round_key(state,10);
+	roundCount--;
+	  
+	// first 9 rounds
+	for (; roundCount > 0 ; roundCount--){
+		inverse_shift_rows(state);
+		inverse_subbytes(state,roundCount);
+		add_round_key(state,roundCount);
+		inverse_mix_coloumns(state);
+		//remasking
+		#ifdef MASKING
+		remask_state(state);
+		#endif
+	}
 
-		//final round
-		inverse_shift_rows(stateText);
-		inverse_subbytes(stateText,aes_invsbox);
-		add_round_key(stateText,roundkeyarr,roundCount);
-
+	//final round
+	#ifdef SHUFFLING
+	Rng_fill(RNG_NUMBER);
+	generate_new_shuffling_array();
+	#endif
+	inverse_shift_rows(state);
+	inverse_subbytes(state,roundCount);
+	add_round_key(state,roundCount);
 }

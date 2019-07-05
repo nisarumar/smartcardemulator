@@ -17,7 +17,6 @@ volatile threefish_param_t* tparam;
 #include "Seed.h"
 #include "BkrndTask.h"
 #include "Rng.h"
-
 void main (void)
 {
 	tparam = (void*) &tparam_asm;
@@ -28,6 +27,8 @@ void main (void)
 	DDRA = 0xFF;
 	MCUSR = 0x00;
 	PORTA = MCUSR;
+
+extern uint8_t stateText[];
 	MK_FIFO(tx_fifo,5);
 	tx_fifo->buff = &fifo_buff_tx_fifo[0];
 	tx_fifo->sz = 5 & UINT8_MAX;
@@ -47,17 +48,18 @@ void main (void)
 	Dev_init(&dev0);
 	Seed_init();
 	Art_duplexMode(&tty,TRANSMITTER);
+	TRIGGER_INIT();
 	sei();
 	Rng_init();
 	Atr_main(&tty);
 	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
-	while(1)
-	{
+	while(1){		
 		Apdu_decryptKey(&tty);
-		Rng_fill(RNG_NUMBER);
-		aes_dec_128(stateText, roundkeyarr);
+		TRIGGER_SET();
+		aes_dec_128(stateText);
+		TRIGGER_CLR();
 		Rng_reseed();
 		Apdu_getResponse(&tty);
-		Seed_resume();
+		Seed_resume();	
 	}
 }

@@ -21,8 +21,8 @@ verbose = True
 
 direction       =   1               # 0 = encryption, 1 = decryption
 
-n_traces        =   400             # number of traces to capture
-n_samples       =   62500           # number of samples per trace (optical analysis !)
+n_traces        =   4000            # number of traces to capture
+n_samples       =   625000           # number of samples per trace (optical analysis !)
 sample_rate     =   psc.F_125_MHZ   # sample rate [S/sec]
 channel_A_range =   psc.V_200M      # voltage range for channel A of picoscope
 o_directory     =   './'            # output directory (has to exist!)
