@@ -76,7 +76,7 @@ uint8_t	stateText [16] = {0x79,	0x9F, 0xFD,	0x33, 0x7C,	0x8E, 0x7D, 0x9A, 0xCC, 
 //uint8_t key[16]={0xB5, 0x2E, 0x33, 0xB1, 0x2A, 0x71, 0x1D, 0xCB, 0xF9, 0xA7, 0x8A, 0xD7, 0x39, 0xD8, 0x82, 0x08 };
 #ifdef SHUFFLING
 extern uint8_t shuffling_array[];
-void generate_new_shuffling_array();
+void generate_new_shuffling_array(void);
 #endif
 #ifdef DUMMY
 void add_dummy_operations(uint8_t round);
@@ -381,12 +381,12 @@ void gen_roundkey(uint8_t* key , uint8_t* k,  const uint8_t* sboxarr,  const uin
 //generating the array for shuffling of operations(add round key and inverse sbox)
 #ifdef SHUFFLING
 uint8_t shuffling_array[16] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15};
-void generate_new_shuffling_array() {
+void generate_new_shuffling_array(void) {
 
 	uint8_t i = 15; // array end
 	uint8_t j = 0;  // init value
 	do
-	{		j = Rng_rand[i]%(i+1); 		
+	{	j = Rng_rand[i]%(i+1); 		
 		//swap the last element with element at random index
 		uint8_t temp = shuffling_array[i];
 		shuffling_array[i] = shuffling_array[j];
@@ -407,7 +407,7 @@ void aes_dec_128(uint8_t* state){
 	//Generating the shuffling _array[] for randomness in operation
 	#ifdef SHUFFLING
 		Rng_fill(RNG_NUMBER);
-		generate_new_shuffling_array(10);
+		generate_new_shuffling_array();
 	#endif
 	
 	#ifdef MASKING

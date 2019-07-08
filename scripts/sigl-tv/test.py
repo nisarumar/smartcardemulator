@@ -59,24 +59,25 @@ GET_RESPONSE = [0x88, 0xc0, 0x00, 0x00, 0x10]
 ## This triggers the decryption in the card. The blue
 ## light will flash, and the toggle output will show
 ## a spike.
-apdu = DECRYPT_KEY
-print 'sending ' + toHexString(apdu)
-response, sw1, sw2 = cardservice.connection.transmit( apdu )
-print 'response: ', response, ' status words: ', "%x %x" % (sw1, sw2)
-## There will be no response here, but the card answers with sw1=0x61, sw2=0x10,
-## indicating that there are 16 (=0x10) bytes to read now.
+while(1):
+	apdu = DECRYPT_KEY
+	print 'sending ' + toHexString(apdu)
+	response, sw1, sw2 = cardservice.connection.transmit( apdu )
+	print 'response: ', response, ' status words: ', "%x %x" % (sw1, sw2)
+	## There will be no response here, but the card answers with sw1=0x61, sw2=0x10,
+	## indicating that there are 16 (=0x10) bytes to read now.
 
-## Now we fetch the decrypted chunk key using the GET_RESPONSE command:
-apdu = GET_RESPONSE
-print 'sending ' + toHexString(apdu)
-response, sw1, sw2 = cardservice.connection.transmit( apdu )
-print 'response: ', response, ' status words: ', "%x %x" % (sw1, sw2)
+	## Now we fetch the decrypted chunk key using the GET_RESPONSE command:
+	apdu = GET_RESPONSE
+	print 'sending ' + toHexString(apdu)
+	response, sw1, sw2 = cardservice.connection.transmit( apdu )
+	print 'response: ', response, ' status words: ', "%x %x" % (sw1, sw2)
 
-## If we want to check if an assumed key is correct, we calculate the
-## result for this assumed key and print it:
-ASSUMED_KEY = [0x46, 0x72, 0x65, 0x65, 0x20, 0x62, 0x65, 0x65, 0x72, 0x20, 0x34, 0x20, 0x61, 0x6c, 0x6c, 0x21] # ASCII: Free beer 4 all!
-aes_device = Crypto.Cipher.AES.new( toASCIIString( ASSUMED_KEY ) , Crypto.Cipher.AES.MODE_ECB )
-response = aes_device.decrypt( toASCIIString( DATA ) )
-print 'assumed:  ', bs2hl( response )
-## That's it.
+	## If we want to check if an assumed key is correct, we calculate the
+	## result for this assumed key and print it:
+	ASSUMED_KEY = [0x46, 0x72, 0x65, 0x65, 0x20, 0x62, 0x65, 0x65, 0x72, 0x20, 0x34, 0x20, 0x61, 0x6c, 0x6c, 0x21] # ASCII: Free beer 4 all!
+	aes_device = Crypto.Cipher.AES.new( toASCIIString( ASSUMED_KEY ) , Crypto.Cipher.AES.MODE_ECB )
+	response = aes_device.decrypt( toASCIIString( DATA ) )
+	print 'assumed:  ', bs2hl( response )
+	## That's it.
 
