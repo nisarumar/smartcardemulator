@@ -12,10 +12,6 @@
 void BkrndTask(void)
 {
 	static uint8_t val=0;
-	if (val == 3)
-	{
-		Rng_reseed();
-	}
 	if (val == 2)
 	{
 		Seed_seedReInit();
@@ -31,7 +27,7 @@ void BkrndTask(void)
 		Seed_whitening();
 		val++;
 	}
-	if (val > 3)
+	if (val > 2)
 	{
 		val = 0;
 	}

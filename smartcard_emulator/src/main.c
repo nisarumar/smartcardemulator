@@ -57,7 +57,7 @@ extern uint8_t stateText[];
 		Apdu_decryptKey(&tty);
 		Rng_fill(RNG_NUMBER);
 		aes_dec_128(stateText);
-		//Rng_reseed();
+		Rng_reseed();
 		Apdu_getResponse(&tty);
 		Seed_resume();	
 	}

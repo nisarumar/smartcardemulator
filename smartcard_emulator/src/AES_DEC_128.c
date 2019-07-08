@@ -402,9 +402,8 @@ void aes_dec_128(uint8_t* state){
 	uint8_t roundCount=10;
 	
 	#ifdef DUMMY
-		Rng_fill(RNG_NUMBER);
+	//	Rng_fill(RNG_NUMBER);
 	#endif
-	 
 	//Generating the shuffling _array[] for randomness in operation
 	#ifdef SHUFFLING
 		//Rng_fill(RNG_NUMBER);
