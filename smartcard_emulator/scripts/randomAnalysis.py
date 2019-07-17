@@ -2,13 +2,14 @@ import logging
 import numpy as np
 import matplotlib.pyplot as plt
 logging.basicConfig(level=logging.DEBUG)
-filename="putty.log2"
+filename="putty.log3"
 filehndl= open(filename,'r');
+randarrTimer = []
 randarrRaw = []
 randarrRef = []
 for line in filehndl:
 	str(line)
-	if(line[0] == 'V'):
+	if(line[0] == 'I'):
 		print(line)
 		randarrRaw.append(int(line[3:],16))
 	if(line[0] == 'R'):
@@ -43,9 +44,19 @@ plt.subplot(212)
 plt.hist(npArrRef, bins=256)
 plt.xlabel('PRNG Bytes')
 plt.ylabel('Frequency')
+plt.figure(3)
+npArrRawIdx = np.floor(np.sqrt(len(npArrRaw)))
+npArrRawIdx = npArrRawIdx.astype(int)
+npbmparr = np.reshape(npArrRaw[0:npArrRawIdx**2],(-1,npArrRawIdx))
+plt.imshow(npbmparr,cmap="gray")
+plt.title("Bit Map of RAW Entropy")
+plt.figure(4)
+npArrRefIdx = np.floor(np.sqrt(len(npArrRef)))
+npArrRefIdx = npArrRefIdx.astype(int)
+npbmparrRef = np.reshape(npArrRef[0:npArrRefIdx**2],(-1,npArrRefIdx))
+plt.imshow(npbmparrRef,cmap="gray")
+plt.title("Bit Map of PRNG")
 plt.show()
-
-
 
 
 #Size was 365 characters
