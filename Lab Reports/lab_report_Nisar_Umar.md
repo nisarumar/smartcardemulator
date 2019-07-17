@@ -63,8 +63,10 @@ streaming the first time, first release
 * **Date:** *04/07/2019*
 * **Tasks:**          
  * Completed Random Number Generation
- * Incorporated fhreefish library for PRNG
- * Finally managed Timing alongwith communication of APDU's *most time consuming task*
+    * Incorporated fhreefish library for PRNG
+    * Mechanism to generate, whiten and store raw entropy in parallel with 
+    the communication
+    * Finally managed Timing alongwith communication of APDU's,  *most time consuming task*
 
 
 * **Date:** *XX/XX/XXXX*
