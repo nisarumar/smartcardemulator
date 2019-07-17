@@ -24,10 +24,11 @@
 #include <stdlib.h>
 #include <time.h>
 #include <Rng.h>
-//#define SHUFFLING
+#include "IO.h"
+#define SHUFFLING
 //#define DUMMY
 //#define NORMAL
-#define MASKING
+//#define MASKING
 /*
  *This MACRO is understood and taken from https://github.com/kokke/tiny-AES-c/blob/master/aes.c
  */
@@ -401,24 +402,23 @@ void aes_dec_128(uint8_t* state){
 	uint8_t roundCount=10;
 	
 	#ifdef DUMMY
-		Rng_fill(RNG_NUMBER);
+	//	Rng_fill(RNG_NUMBER);
 	#endif
-	 
 	//Generating the shuffling _array[] for randomness in operation
 	#ifdef SHUFFLING
-		Rng_fill(RNG_NUMBER);
+		//Rng_fill(RNG_NUMBER);
 		generate_new_shuffling_array();
 	#endif
 	
 	#ifdef MASKING
-		Rng_fill(RNG_NUMBER);
+		//Rng_fill(RNG_NUMBER);
 		init_masking();
 		gen_masked_roundkey_array();
 		mask_state(state);
 	#endif
 	  
 	//add round key
-	
+	TRIGGER_SET();
 	add_round_key(state,10);
 	roundCount--;
 	  
@@ -436,10 +436,11 @@ void aes_dec_128(uint8_t* state){
 
 	//final round
 	#ifdef SHUFFLING
-	Rng_fill(RNG_NUMBER);
+	//Rng_fill(RNG_NUMBER);
 	generate_new_shuffling_array();
 	#endif
 	inverse_shift_rows(state);
 	inverse_subbytes(state,roundCount);
 	add_round_key(state,roundCount);
+	TRIGGER_CLR();
 }

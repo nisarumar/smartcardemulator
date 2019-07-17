@@ -1,7 +1,7 @@
 #ifndef RNG_H_
 #define RNG_H_
 
-#define MASKING
+#define SHUFFLING
 
 #define RNG_SEED_SIZE		UINT8_C(32)
 

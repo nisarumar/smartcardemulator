@@ -7,6 +7,7 @@
 #include "Art.h"
 #include "Atr.h"
 #include "Seed.h"
+#include "Rng.h"
 
 void BkrndTask(void)
 {

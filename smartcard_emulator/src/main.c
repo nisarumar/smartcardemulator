@@ -55,9 +55,8 @@ extern uint8_t stateText[];
 	while(0!=GET_BIT(tty.statusReg,ART_STATUS_REG_TX));
 	while(1){		
 		Apdu_decryptKey(&tty);
-		TRIGGER_SET();
+		Rng_fill(RNG_NUMBER);
 		aes_dec_128(stateText);
-		TRIGGER_CLR();
 		Rng_reseed();
 		Apdu_getResponse(&tty);
 		Seed_resume();	
