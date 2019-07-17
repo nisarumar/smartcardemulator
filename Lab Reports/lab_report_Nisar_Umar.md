@@ -66,7 +66,7 @@ streaming the first time, first release
     * Incorporated fhreefish library for PRNG
     * Mechanism to generate, whiten and store raw entropy in parallel with 
     the communication
-    * Finally managed Timing alongwith communication of APDU's,  *most time consuming task*
+    * Finally managed Timing alongwith communication of APDU's,  **most time consuming task**
 
 
 * **Date:** *XX/XX/XXXX*
