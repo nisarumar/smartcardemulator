@@ -2,4 +2,4 @@
 
 Basic firmware functionality is illustrated in the figure below:
 
-![Overview of Firmware Functionality](https://github.com/nisarumar/smartcardemulator/tree/master/docs/firmware.jpg)
+![Overview of Firmware Functionality](docs/PRNG&#32;Overview.jpg)
